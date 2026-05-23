@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Operating Systems - read() System Call</title>
+
+<style>
+    *{
+        margin:0;
+        padding:0;
+        box-sizing:border-box;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body{
+        background:#0f172a;
+        color:white;
+        line-height:1.6;
+    }
+
+    header{
+        background:linear-gradient(135deg,#2563eb,#0ea5e9);
+        padding:40px 20px;
+        text-align:center;
+        box-shadow:0 4px 15px rgba(0,0,0,0.4);
+    }
+
+    header h1{
+        font-size:3rem;
+        margin-bottom:10px;
+    }
+
+    header p{
+        font-size:1.2rem;
+        opacity:0.9;
+    }
+
+    .container{
+        width:90%;
+        max-width:1200px;
+        margin:auto;
+        padding:40px 0;
+    }
+
+    .card{
+        background:#1e293b;
+        margin-bottom:30px;
+        padding:25px;
+        border-radius:15px;
+        box-shadow:0 0 15px rgba(0,0,0,0.3);
+    }
+
+    h2{
+        color:#38bdf8;
+        margin-bottom:15px;
+    }
+
+    p{
+        margin-bottom:15px;
+    }
+
+    code{
+        background:#111827;
+        color:#22c55e;
+        padding:3px 6px;
+        border-radius:5px;
+    }
+
+    pre{
+        background:#111827;
+        padding:20px;
+        overflow-x:auto;
+        border-radius:10px;
+        margin-top:15px;
+        color:#22c55e;
+    }
+
+    .diagram{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        flex-wrap:wrap;
+        margin-top:25px;
+        gap:20px;
+    }
+
+    .box{
+        flex:1;
+        min-width:220px;
+        padding:25px;
+        text-align:center;
+        border-radius:12px;
+        background:#334155;
+        position:relative;
+    }
+
+    .arrow{
+        font-size:2rem;
+        color:#38bdf8;
+    }
+
+    .demo-area{
+        margin-top:25px;
+    }
+
+    textarea{
+        width:100%;
+        height:120px;
+        padding:15px;
+        border:none;
+        border-radius:10px;
+        resize:none;
+        font-size:1rem;
+        background:#0f172a;
+        color:white;
+        border:2px solid #334155;
+    }
+
+    input{
+        width:100%;
+        padding:12px;
+        margin-top:15px;
+        border:none;
+        border-radius:10px;
+        font-size:1rem;
+        background:#0f172a;
+        color:white;
+        border:2px solid #334155;
+    }
+
+    button{
+        margin-top:20px;
+        padding:12px 25px;
+        border:none;
+        border-radius:10px;
+        background:#0ea5e9;
+        color:white;
+        font-size:1rem;
+        cursor:pointer;
+        transition:0.3s;
+    }
+
+    button:hover{
+        background:#0284c7;
+        transform:scale(1.05);
+    }
+
+    .output{
+        margin-top:25px;
+        background:#111827;
+        padding:20px;
+        border-radius:10px;
+        min-height:80px;
+        border-left:5px solid #38bdf8;
+    }
+
+    .highlight{
+        color:#22c55e;
+        font-weight:bold;
+    }
+
+    .steps{
+        margin-top:20px;
+    }
+
+    .step{
+        background:#334155;
+        padding:15px;
+        margin-bottom:10px;
+        border-radius:10px;
+        opacity:0;
+        transform:translateX(-30px);
+        transition:0.5s;
+    }
+
+    .step.show{
+        opacity:1;
+        transform:translateX(0);
+    }
+
+    footer{
+        text-align:center;
+        padding:25px;
+        background:#020617;
+        margin-top:40px;
+        color:#94a3b8;
+    }
+
+    @media(max-width:768px){
+        header h1{
+            font-size:2rem;
+        }
+
+        .diagram{
+            flex-direction:column;
+        }
+
+        .arrow{
+            transform:rotate(90deg);
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>read() System Call</h1>
+    <!-- <p>Operating Systems Interactive Web Portfolio</p> -->
+</header>
+
+<div class="container">
+
+    <!-- INTRO -->
+    <div class="card">
+        <h2>What is read() ?</h2>
+
+        <p>
+            The <code>read()</code> system call is used in Operating Systems to
+            read data from a file, keyboard, pipe, or input stream into a buffer.
+        </p>
+
+        <p>
+            It is a low-level UNIX/Linux system call that communicates directly
+            with the kernel.
+        </p>
+
+        <p class="highlight">
+            Syntax:
+        </p>
+
+<pre>
+ssize_t read(int fd, void *buffer, size_t count);
+</pre>
+
+        <p><strong>Parameters:</strong></p>
+
+        <ul style="padding-left:20px;">
+            <li><strong>fd</strong> → File descriptor</li>
+            <li><strong>buffer</strong> → Memory location to store data</li>
+            <li><strong>count</strong> → Number of bytes to read</li>
+        </ul>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div class="card">
+        <h2>How read() Works</h2>
+
+        <div class="diagram">
+
+            <div class="box">
+                <h3>Input Source</h3>
+                <p>File / Keyboard / Pipe</p>
+            </div>
+
+            <div class="arrow">➡</div>
+
+            <div class="box">
+                <h3>Kernel</h3>
+                <p>Processes the request</p>
+            </div>
+
+            <div class="arrow">➡</div>
+
+            <div class="box">
+                <h3>Buffer</h3>
+                <p>Stores received data</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- CODE EXAMPLE -->
+    <div class="card">
+        <h2>C Language Example</h2>
+
+<pre>
+#include &lt;unistd.h&gt;
+#include &lt;fcntl.h&gt;
+
+int main() {
+
+    char buffer[100];
+
+    int fd = open("file.txt", O_RDONLY);
+
+    read(fd, buffer, 100);
+
+    return 0;
+}
+</pre>
+
+        <p>
+            In this example:
+        </p>
+
+        <ul style="padding-left:20px;">
+            <li>The file is opened in read-only mode.</li>
+            <li><code>read()</code> copies data from the file into the buffer.</li>
+            <li>The operating system handles the transfer.</li>
+        </ul>
+
+    </div>
+
+    <!-- INTERACTIVE DEMO -->
+    <div class="card">
+        <h2>Interactive read() Simulation</h2>
+
+        <p>
+            Type some text below and simulate how the
+            <code>read()</code> system call reads bytes into memory.
+        </p>
+
+        <div class="demo-area">
+
+            <textarea id="inputText" placeholder="Type data here..."></textarea>
+
+            <input
+                type="number"
+                id="byteCount"
+                placeholder="Enter number of bytes to read"
+            />
+
+            <button onclick="simulateRead()">
+                Simulate read()
+            </button>
+
+            <div class="output" id="output">
+                Output will appear here...
+            </div>
+
+            <div class="steps">
+                <div class="step" id="step1">
+                    Step 1: Process requests data from the file descriptor.
+                </div>
+
+                <div class="step" id="step2">
+                    Step 2: Kernel checks permissions and available data.
+                </div>
+
+                <div class="step" id="step3">
+                    Step 3: Data is copied into the buffer.
+                </div>
+
+                <div class="step" id="step4">
+                    Step 4: read() returns the number of bytes read.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- RETURN VALUES -->
+    <div class="card">
+        <h2>Return Values of read()</h2>
+
+        <ul style="padding-left:20px;">
+            <li><strong>Positive Number</strong> → Number of bytes successfully read</li>
+            <li><strong>0</strong> → End of file (EOF)</li>
+            <li><strong>-1</strong> → Error occurred</li>
+        </ul>
+    </div>
+
+    <!-- ADVANTAGES -->
+    <div class="card">
+        <h2>Why is read() Important?</h2>
+
+        <p>
+            The <code>read()</code> system call is one of the most important
+            functions in UNIX/Linux operating systems because:
+        </p>
+
+        <ul style="padding-left:20px;">
+            <li>It enables communication with files and devices.</li>
+            <li>It is used internally by many programs.</li>
+            <li>It provides direct interaction with the operating system kernel.</li>
+            <li>It is essential for file handling and process communication.</li>
+        </ul>
+    </div>
+
+</div>
+
+<footer>
+    Created for Operating Systems Web Portfolio Project - Task 29: read()
+</footer>
+
+<script>
+
+function simulateRead(){
+
+    const text = document.getElementById("inputText").value;
+    const bytes = parseInt(document.getElementById("byteCount").value);
+
+    const output = document.getElementById("output");
+
+    const steps = [
+        document.getElementById("step1"),
+        document.getElementById("step2"),
+        document.getElementById("step3"),
+        document.getElementById("step4")
+    ];
+
+    // Reset animation
+    steps.forEach(step => {
+        step.classList.remove("show");
+    });
+
+    if(text.length === 0){
+        output.innerHTML = "Please enter some text first.";
+        return;
+    }
+
+    if(isNaN(bytes) || bytes <= 0){
+        output.innerHTML = "Please enter a valid byte count.";
+        return;
+    }
+
+    let result = text.substring(0, bytes);
+
+    output.innerHTML = `
+        <strong>Input Data:</strong> ${text}<br><br>
+        <strong>Bytes Requested:</strong> ${bytes}<br><br>
+        <strong>Data Read Into Buffer:</strong><br>
+        <span style="color:#22c55e; font-size:1.2rem;">
+            "${result}"
+        </span><br><br>
+        <strong>Bytes Returned:</strong> ${result.length}
+    `;
+
+    // Animate steps
+    steps.forEach((step,index)=>{
+        setTimeout(()=>{
+            step.classList.add("show");
+        }, index * 700);
+    });
+}
+
+</script>
+
+</body>
+</html>

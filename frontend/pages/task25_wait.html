@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>wait() System Call — OS Interactive Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #2e0107;
+    --surface: #18060a;
+    --surface2: #220a0f;
+    --border: #4a1020;
+    --accent: #ff4d88;
+    --accent2: #ff7aa2;
+    --accent3: #ff4d88;
+    --zombie: #ff3355;
+    --parent: #ff7aa2;
+    --child: #ffb3c8;
+    --text: #f3e8ee;
+    --muted: #8a5a6a;
+    --code-bg: #100308;
+    --green: #4ade80;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,77,136,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,77,136,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    padding: 60px 0 40px;
+    text-align: center;
+    position: relative;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 14px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    background: rgba(255,77,136,0.06);
+  }
+
+  h1 {
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+  }
+
+  h1 span.syscall {
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 1rem;
+    max-width: 520px;
+    margin: 0 auto 40px;
+    line-height: 1.6;
+  }
+
+  .concepts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 60px;
+  }
+
+  .concept-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .concept-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .concept-card.c1::before { background: var(--accent); }
+  .concept-card.c2::before { background: var(--child); }
+  .concept-card.c3::before { background: var(--accent2); }
+  .concept-card.c4::before { background: var(--zombie); }
+
+  .concept-card:hover { border-color: #6a2040; }
+
+  .concept-card .icon { font-size: 1.6rem; margin-bottom: 12px; display: block; }
+
+  .concept-card h3 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    color: var(--muted);
+  }
+
+  .concept-card p {
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .section-label h2 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; }
+
+  .section-label .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 2px 8px;
+    border-radius: 2px;
+    background: rgba(255,77,136,0.06);
+  }
+
+  section { margin-bottom: 72px; }
+
+  .demo-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .demo-toolbar {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .demo-toolbar .dots { display: flex; gap: 6px; }
+  .demo-toolbar .dots span { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+
+  .demo-title { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--muted); flex: 1; }
+
+  .btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 8px 18px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+
+  .btn-danger { background: var(--zombie); color: #fff; }
+  .btn-danger:hover { background: #ff5577; transform: translateY(-1px); }
+
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .process-stage {
+    padding: 36px 28px;
+    min-height: 280px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .process-track { width: 100%; display: flex; flex-direction: column; gap: 24px; }
+
+  .process-row { display: flex; align-items: center; gap: 16px; }
+
+  .process-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    width: 60px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .timeline-bar {
+    flex: 1;
+    height: 42px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  .bar-parent  { background: rgba(255,122,162,0.18); border: 1px solid rgba(255,122,162,0.4); color: var(--parent); }
+  .bar-child   { background: rgba(255,179,200,0.18); border: 1px solid rgba(255,179,200,0.4); color: var(--child); }
+  .bar-zombie  { background: rgba(255,51,85,0.18);   border: 1px solid rgba(255,51,85,0.4);   color: var(--zombie); }
+  .bar-waiting { background: rgba(255,77,136,0.06);  border: 1px dashed rgba(255,77,136,0.3); color: rgba(255,77,136,0.5); }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 6px; flex-shrink: 0;
+    animation: pulse-dot 1.2s infinite;
+  }
+  @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  .dot-active  { background: var(--accent2);  box-shadow: 0 0 6px var(--accent2); }
+  .dot-waiting { background: var(--accent);   box-shadow: 0 0 6px var(--accent); }
+  .dot-dead    { background: var(--zombie);   box-shadow: 0 0 6px var(--zombie); animation: none; }
+  .dot-done    { background: var(--green);    box-shadow: 0 0 6px var(--green); animation: none; }
+
+  .terminal {
+    background: var(--code-bg);
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+    min-height: 120px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.8;
+  }
+
+  .terminal::-webkit-scrollbar { width: 4px; }
+  .terminal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-line { display: block; }
+  .log-line.parent { color: var(--parent); }
+  .log-line.child  { color: var(--child); }
+  .log-line.os     { color: var(--accent2); }
+  .log-line.zombie { color: var(--zombie); }
+  .log-line.sys    { color: var(--muted); }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .tab.active { background: var(--surface2); color: var(--accent); border: 1px solid var(--border); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 20px;
+  }
+
+  .code-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .code-header span { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--muted); }
+
+  .code-header .lang {
+    color: var(--accent);
+    font-size: 0.7rem;
+    border: 1px solid rgba(255,77,136,0.3);
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+
+  pre {
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.8;
+    color: var(--text);
+  }
+
+  pre::-webkit-scrollbar { height: 4px; }
+  pre::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .kw  { color: #ff79c6; }
+  .fn  { color: #ff9ab5; }
+  .str { color: #f1fa8c; }
+  .num { color: #ffb3c8; }
+  .cm  { color: #5c3040; font-style: italic; }
+  .tp  { color: #ffd0df; }
+  .mac { color: #ffb86c; }
+
+  .status-panel {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+  }
+
+  .status-cell { background: var(--surface); padding: 14px 20px; text-align: center; }
+
+  .status-cell .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .status-cell .value { font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 700; }
+
+  .quiz-area {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+  }
+
+  .quiz-q { font-size: 1rem; font-weight: 600; margin-bottom: 18px; line-height: 1.5; }
+
+  .quiz-options { display: grid; gap: 10px; margin-bottom: 16px; }
+
+  .quiz-opt {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--text);
+    text-align: left;
+    transition: all 0.2s;
+  }
+
+  .quiz-opt:hover { border-color: var(--accent); color: var(--accent); }
+  .quiz-opt.correct { border-color: var(--green); background: rgba(74,222,128,0.08); color: var(--green); }
+  .quiz-opt.wrong   { border-color: var(--zombie); background: rgba(255,51,85,0.08); color: var(--zombie); }
+  .quiz-opt:disabled { cursor: default; }
+
+  .quiz-feedback {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    padding: 12px 16px;
+    border-radius: 6px;
+    display: none;
+    line-height: 1.6;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.good { background: rgba(74,222,128,0.08); color: var(--green); border: 1px solid rgba(74,222,128,0.3); }
+  .quiz-feedback.bad  { background: rgba(255,51,85,0.08); color: var(--zombie); border: 1px solid rgba(255,51,85,0.3); }
+
+  .quiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+
+  .quiz-progress { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--muted); }
+
+  .info-callout {
+    background: rgba(255,77,136,0.05);
+    border: 1px solid rgba(255,77,136,0.2);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 18px 22px;
+    margin-top: 20px;
+  }
+
+  .info-callout p { font-size: 0.88rem; line-height: 1.7; color: var(--text); }
+
+  .info-callout code {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    background: rgba(255,77,136,0.08);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.82rem;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0;
+    text-align: center;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+  }
+
+  @keyframes fadeIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+  .fade-in { animation: fadeIn 0.5s ease forwards; }
+  .hidden { display: none !important; }
+
+  .pid-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .pid-p { background: rgba(255,122,162,0.15); color: var(--parent); border: 1px solid rgba(255,122,162,0.3); }
+  .pid-c { background: rgba(255,179,200,0.15); color: var(--child); border: 1px solid rgba(255,179,200,0.3); }
+
+  .macros-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 20px; }
+
+  .macro-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+
+  .macro-card code { font-family: 'JetBrains Mono', monospace; color: var(--mac); font-size: 0.85rem; display: block; margin-bottom: 8px; }
+  .macro-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+
+  .speed-wrap { display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--muted); }
+
+  input[type=range] { -webkit-appearance: none; width: 90px; height: 4px; background: var(--border); border-radius: 2px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+
+  /* ═══════════════════════════════════════════
+     PROCESS TREE
+  ═══════════════════════════════════════════ */
+  .tree-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .tree-toolbar {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .tree-stage {
+    padding: 28px 36px;
+    min-height: 200px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 2;
+    position: relative;
+  }
+
+  .tree-node {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 5px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    transition: all 0.4s ease;
+    font-size: 0.82rem;
+  }
+
+  .tree-node.init  { color: var(--muted); border-color: var(--border); background: var(--surface2); }
+  .tree-node.parent-node { color: var(--parent); border-color: rgba(255,122,162,0.4); background: rgba(255,122,162,0.1); }
+  .tree-node.child-node  { color: var(--child); border-color: rgba(255,179,200,0.4); background: rgba(255,179,200,0.1); }
+  .tree-node.zombie-node { color: var(--zombie); border-color: rgba(255,51,85,0.5); background: rgba(255,51,85,0.12); animation: zombie-pulse 1s infinite; }
+  .tree-node.reaped-node { color: var(--green); border-color: rgba(74,222,128,0.4); background: rgba(74,222,128,0.08); }
+  .tree-node.gone-node   { opacity: 0.25; text-decoration: line-through; }
+
+  @keyframes zombie-pulse { 0%,100%{box-shadow:0 0 0 rgba(255,51,85,0);} 50%{box-shadow:0 0 14px rgba(255,51,85,0.4);} }
+
+  .tree-line { color: var(--muted); }
+
+  .tree-status-bar {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+
+  .tree-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    transition: all 0.4s;
+  }
+
+  .tree-badge.active-badge { border-color: var(--accent); color: var(--accent); background: rgba(255,77,136,0.08); }
+  .tree-badge.zombie-badge { border-color: var(--zombie); color: var(--zombie); background: rgba(255,51,85,0.08); }
+  .tree-badge.done-badge   { border-color: var(--green); color: var(--green); background: rgba(74,222,128,0.08); }
+
+  .tree-annotation {
+    margin-top: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent2);
+    min-height: 20px;
+    transition: opacity 0.3s;
+  }
+
+  /* ═══════════════════════════════════════════
+     SYSCALL FLOW
+  ═══════════════════════════════════════════ */
+  .flow-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .flow-stage {
+    padding: 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    min-height: 340px;
+  }
+
+  .flow-layer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+  }
+
+  .flow-layer-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin-bottom: 18px;
+    background: var(--surface2);
+  }
+
+  .flow-node {
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-align: center;
+    border: 1px solid transparent;
+    transition: all 0.4s ease;
+    opacity: 0.25;
+    position: relative;
+    width: 100%;
+    max-width: 180px;
+  }
+
+  .flow-node.fn-parent { background: rgba(255,122,162,0.1); border-color: rgba(255,122,162,0.3); color: var(--parent); }
+  .flow-node.fn-kernel { background: rgba(255,77,136,0.08); border-color: rgba(255,77,136,0.25); color: var(--accent); }
+  .flow-node.fn-child  { background: rgba(255,179,200,0.1); border-color: rgba(255,179,200,0.3); color: var(--child); }
+  .flow-node.active    { opacity: 1; box-shadow: 0 0 20px rgba(255,77,136,0.2); }
+  .flow-node.done-node { opacity: 0.6; }
+
+  .flow-arrow {
+    width: 2px;
+    background: var(--border);
+    flex: 1;
+    max-height: 40px;
+    min-height: 20px;
+    position: relative;
+    transition: background 0.4s;
+    margin: 4px auto;
+  }
+
+  .flow-arrow.lit { background: var(--accent); box-shadow: 0 0 8px rgba(255,77,136,0.5); }
+  .flow-arrow.lit::after {
+    content: '▼';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: var(--accent);
+  }
+
+  .flow-status {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent2);
+    padding: 16px 0 4px;
+    min-height: 40px;
+    border-top: 1px solid var(--border);
+    margin-top: 16px;
+  }
+
+  .flow-divider {
+    position: absolute;
+    top: 60px; bottom: 0;
+    border-left: 1px dashed var(--border);
+    pointer-events: none;
+  }
+
+  .flow-divider.d1 { left: 33.33%; }
+  .flow-divider.d2 { left: 66.66%; }
+
+  /* ═══════════════════════════════════════════
+     PROCESS TABLE
+  ═══════════════════════════════════════════ */
+  .ptable-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .ptable-toolbar {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .ptable {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+  }
+
+  .ptable thead tr {
+    background: var(--surface2);
+    border-bottom: 2px solid var(--border);
+  }
+
+  .ptable th {
+    padding: 12px 16px;
+    text-align: left;
+    color: var(--muted);
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .ptable tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.4s, opacity 0.5s;
+  }
+
+  .ptable tbody tr:last-child { border-bottom: none; }
+
+  .ptable td { padding: 12px 16px; }
+
+  .ptable .row-running { background: rgba(255,122,162,0.04); }
+  .ptable .row-waiting { background: rgba(255,77,136,0.04); }
+  .ptable .row-zombie  { background: rgba(255,51,85,0.1); animation: zombie-pulse 1s infinite; }
+  .ptable .row-done    { opacity: 0.3; }
+  .ptable .row-new     { animation: rowFadeIn 0.5s ease forwards; }
+
+  @keyframes rowFadeIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:none} }
+
+  .state-pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .pill-run    { background: rgba(255,122,162,0.15); color: var(--parent); border: 1px solid rgba(255,122,162,0.3); }
+  .pill-wait   { background: rgba(255,77,136,0.1);   color: var(--accent); border: 1px solid rgba(255,77,136,0.3); }
+  .pill-sleep  { background: rgba(255,179,200,0.1);  color: var(--child); border: 1px solid rgba(255,179,200,0.3); }
+  .pill-zombie { background: rgba(255,51,85,0.2);    color: var(--zombie); border: 1px solid rgba(255,51,85,0.5); }
+  .pill-exit   { background: rgba(74,222,128,0.1);   color: var(--green); border: 1px solid rgba(74,222,128,0.3); }
+  .pill-idle   { background: rgba(100,90,106,0.15);  color: var(--muted); border: 1px solid var(--border); }
+
+  .ptable-note {
+    padding: 12px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.73rem;
+    color: var(--accent2);
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+    min-height: 40px;
+  }
+
+  /* ═══════════════════════════════════════════
+     COMMON MISTAKES
+  ═══════════════════════════════════════════ */
+  .mistakes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .mistake-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+
+  .mistake-card:hover { border-color: #6a2040; transform: translateY(-2px); }
+
+  .mistake-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--zombie);
+  }
+
+  .mistake-icon {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+  }
+
+  .mistake-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--zombie);
+    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+  }
+
+  .mistake-desc {
+    font-size: 0.85rem;
+    color: var(--text);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .mistake-fix {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--green);
+    background: rgba(74,222,128,0.06);
+    border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 5px;
+    padding: 8px 12px;
+    line-height: 1.6;
+  }
+
+  .mistake-fix::before { content: '✓ Fix: '; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div style="position:fixed;top:16px;left:20px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:#ff4d88;z-index:999;letter-spacing:0.5px;">By Zayinab Swara</div>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="badge">Operating Systems — System Calls</div>
+    <h1>The <span class="syscall">wait()</span> System Call</h1>
+    <p class="subtitle">An interactive visual guide to process synchronization, zombie prevention, and exit status in Linux.</p>
+  </header>
+
+  <!-- CONCEPT CARDS -->
+  <div class="concepts">
+    <div class="concept-card c1">
+      <span class="icon">⏸️</span>
+      <h3>Blocks Parent</h3>
+      <p>The parent process suspends execution until one of its child processes finishes.</p>
+    </div>
+    <div class="concept-card c2">
+      <span class="icon">📤</span>
+      <h3>Exit Status</h3>
+      <p>Allows the parent to read the child's exit code using <code style="font-family:'JetBrains Mono',monospace;color:var(--child);font-size:0.8rem">WIFEXITED</code> and <code style="font-family:'JetBrains Mono',monospace;color:var(--child);font-size:0.8rem">WEXITSTATUS</code>.</p>
+    </div>
+    <div class="concept-card c3">
+      <span class="icon">🧹</span>
+      <h3>Cleanup</h3>
+      <p>The OS completely frees the child's resources after <code style="font-family:'JetBrains Mono',monospace;color:var(--accent2);font-size:0.8rem">wait()</code> is called.</p>
+    </div>
+    <div class="concept-card c4">
+      <span class="icon">🧟</span>
+      <h3>Zombie Prevention</h3>
+      <p>Without <code style="font-family:'JetBrains Mono',monospace;color:var(--zombie);font-size:0.8rem">wait()</code>, a terminated child lingers as a zombie in the process table.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 1: INTERACTIVE DEMO -->
+  <section>
+    <div class="section-label">
+      <span class="num">01</span>
+      <h2>Interactive Process Demo</h2>
+    </div>
+
+    <div class="tabs" id="demo-tabs">
+      <button class="tab active" onclick="switchDemo(0, this)">Simple Wait</button>
+      <button class="tab" onclick="switchDemo(1, this)">Exit Status</button>
+      <button class="tab" onclick="switchDemo(2, this)">Zombie Process</button>
+    </div>
+
+    <div class="demo-box">
+      <div class="demo-toolbar">
+        <div class="dots">
+          <span class="dot-r"></span>
+          <span class="dot-y"></span>
+          <span class="dot-g"></span>
+        </div>
+        <span class="demo-title" id="demo-title">example_4_1_simple_wait.c</span>
+        <div class="speed-wrap">
+          <span>Speed</span>
+          <input type="range" id="speed-slider" min="0.5" max="3" step="0.5" value="1">
+          <span id="speed-label">1x</span>
+        </div>
+        <button class="btn btn-primary" id="run-btn" onclick="runDemo()">▶ Run</button>
+        <button class="btn btn-ghost" id="reset-btn" onclick="resetDemo()">↺ Reset</button>
+      </div>
+
+      <div class="process-stage">
+        <div class="process-track">
+          <div class="process-row">
+            <span class="process-label">PARENT<br><span style="font-size:0.65rem;color:var(--accent)">PID 100</span></span>
+            <div class="timeline-bar">
+              <div class="bar-fill bar-parent" id="bar-parent">
+                <span class="status-dot dot-active" id="dot-parent"></span>
+                <span id="lbl-parent">Ready</span>
+              </div>
+            </div>
+          </div>
+          <div class="process-row">
+            <span class="process-label">CHILD<br><span style="font-size:0.65rem;color:var(--child)">PID 101</span></span>
+            <div class="timeline-bar">
+              <div class="bar-fill bar-child" id="bar-child">
+                <span class="status-dot dot-active" id="dot-child"></span>
+                <span id="lbl-child">Ready</span>
+              </div>
+            </div>
+          </div>
+          <div class="process-row" id="zombie-row" style="display:none">
+            <span class="process-label" style="color:var(--zombie)">ZOMBIE<br><span style="font-size:0.65rem">PID 101</span></span>
+            <div class="timeline-bar">
+              <div class="bar-fill bar-zombie" id="bar-zombie">
+                <span class="status-dot dot-dead"></span>
+                <span id="lbl-zombie">☠ Zombie — in process table</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-panel">
+        <div class="status-cell">
+          <span class="label">Parent State</span>
+          <span class="value" id="stat-parent" style="color:var(--parent)">IDLE</span>
+        </div>
+        <div class="status-cell">
+          <span class="label">Child State</span>
+          <span class="value" id="stat-child" style="color:var(--child)">IDLE</span>
+        </div>
+        <div class="status-cell">
+          <span class="label">Exit Code</span>
+          <span class="value" id="stat-exit" style="color:var(--accent2)">—</span>
+        </div>
+      </div>
+
+      <div class="terminal" id="terminal">
+        <span class="log-line sys">$ ./program  ← press Run to execute</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: PROCESS TREE VISUALIZATION -->
+  <section>
+    <div class="section-label">
+      <span class="num">02</span>
+      <h2>Process Tree Visualization</h2>
+    </div>
+
+    <div class="tree-box">
+      <div class="tree-toolbar">
+        <div class="dots">
+          <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--muted);flex:1">pstree — animated process hierarchy</span>
+        <div class="tabs" style="margin:0;border:none;background:transparent;padding:0;gap:6px;">
+          <button class="tab active" onclick="switchTree(0,this)" style="flex:none;padding:6px 12px;font-size:0.7rem">Normal Wait</button>
+          <button class="tab" onclick="switchTree(1,this)" style="flex:none;padding:6px 12px;font-size:0.7rem">Zombie</button>
+        </div>
+        <button class="btn btn-primary" id="tree-run-btn" onclick="runTree()" style="padding:6px 14px;font-size:0.75rem">▶ Animate</button>
+        <button class="btn btn-ghost" onclick="resetTree()" style="padding:6px 14px;font-size:0.75rem">↺</button>
+      </div>
+
+      <div class="tree-stage">
+        <div id="tree-display">
+          <span class="tree-line">  </span><span class="tree-node init" id="tn-init">init(1)</span><br>
+          <span class="tree-line">   └── </span><span class="tree-node parent-node" id="tn-parent">parent(100)</span><br>
+          <span class="tree-line" id="child-branch">        └── </span><span class="tree-node child-node" id="tn-child" style="opacity:0.25">child(101)</span>
+        </div>
+        <div class="tree-annotation" id="tree-annotation">Press Animate to step through the process lifecycle →</div>
+        <div class="tree-status-bar">
+          <span class="tree-badge" id="tbadge-fork">fork()</span>
+          <span class="tree-badge" id="tbadge-wait">wait()</span>
+          <span class="tree-badge" id="tbadge-zombie">zombie?</span>
+          <span class="tree-badge" id="tbadge-reap">reaped</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: SYSCALL FLOW ANIMATION -->
+  <section>
+    <div class="section-label">
+      <span class="num">03</span>
+      <h2>System Call Flow</h2>
+    </div>
+
+    <div class="flow-box">
+      <div class="tree-toolbar">
+        <div class="dots">
+          <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--muted);flex:1">wait() — from user space to kernel and back</span>
+        <button class="btn btn-primary" id="flow-run-btn" onclick="runFlow()" style="padding:6px 14px;font-size:0.75rem">▶ Step</button>
+        <button class="btn btn-ghost" onclick="resetFlow()" style="padding:6px 14px;font-size:0.75rem">↺ Reset</button>
+      </div>
+
+      <div class="flow-stage" style="position:relative">
+        <!-- Dividers -->
+        <div class="flow-divider d1"></div>
+        <div class="flow-divider d2"></div>
+
+        <!-- USER SPACE / PARENT -->
+        <div class="flow-layer">
+          <div class="flow-layer-title">User Space — Parent</div>
+          <div class="flow-node fn-parent" id="fn-fork">fork()</div>
+          <div class="flow-arrow" id="fa-1"></div>
+          <div class="flow-node fn-parent" id="fn-wait">wait(NULL)</div>
+          <div class="flow-arrow" id="fa-2"></div>
+          <div class="flow-node fn-parent" id="fn-blocked">⏸ Blocked</div>
+          <div class="flow-arrow" id="fa-3"></div>
+          <div class="flow-node fn-parent" id="fn-woken">✓ Woken</div>
+          <div class="flow-arrow" id="fa-4"></div>
+          <div class="flow-node fn-parent" id="fn-continues">Continues</div>
+        </div>
+
+        <!-- KERNEL -->
+        <div class="flow-layer">
+          <div class="flow-layer-title">Kernel Space</div>
+          <div class="flow-node fn-kernel" id="fn-sched">Scheduler</div>
+          <div class="flow-arrow" id="fa-5"></div>
+          <div class="flow-node fn-kernel" id="fn-block-parent">Blocks Parent</div>
+          <div class="flow-arrow" id="fa-6"></div>
+          <div class="flow-node fn-kernel" id="fn-receive">Receives SIGCHLD</div>
+          <div class="flow-arrow" id="fa-7"></div>
+          <div class="flow-node fn-kernel" id="fn-ptable">Cleans Proc Table</div>
+          <div class="flow-arrow" id="fa-8"></div>
+          <div class="flow-node fn-kernel" id="fn-wake">Wakes Parent</div>
+        </div>
+
+        <!-- USER SPACE / CHILD -->
+        <div class="flow-layer">
+          <div class="flow-layer-title">User Space — Child</div>
+          <div class="flow-node fn-child" id="fn-child-runs">Child Runs</div>
+          <div class="flow-arrow" id="fa-9"></div>
+          <div class="flow-node fn-child" id="fn-child-work">Executes Work</div>
+          <div class="flow-arrow" id="fa-10"></div>
+          <div class="flow-node fn-child" id="fn-child-exit">exit(code)</div>
+          <div class="flow-arrow" id="fa-11"></div>
+          <div class="flow-node fn-child" id="fn-child-zombie">→ Zombie State</div>
+          <div class="flow-arrow" id="fa-12"></div>
+          <div class="flow-node fn-child" id="fn-child-gone">✓ Resources Freed</div>
+        </div>
+
+        <div class="flow-status" id="flow-status">Press Step to walk through the system call flow</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: CODE WALKTHROUGH -->
+  <section>
+    <div class="section-label">
+      <span class="num">04</span>
+      <h2>Code Walkthrough</h2>
+    </div>
+
+    <div class="tabs" id="code-tabs">
+      <button class="tab active" onclick="switchCode(0, this)">4.1 — Simple wait(NULL)</button>
+      <button class="tab" onclick="switchCode(1, this)">4.2 — Status Macros</button>
+      <button class="tab" onclick="switchCode(2, this)">4.3 — Zombie</button>
+    </div>
+
+    <div id="code-0" class="code-block fade-in">
+      <div class="code-header">
+        <span>example_4_1_simple_wait.c</span>
+        <span class="lang">C</span>
+      </div>
+      <pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;unistd.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;sys/wait.h&gt;</span>
+
+<span class="tp">int</span> <span class="fn">main</span>() {
+    <span class="tp">pid_t</span> pid = <span class="fn">fork</span>();       <span class="cm">// Create child process</span>
+
+    <span class="kw">if</span> (pid == <span class="num">0</span>) {            <span class="cm">// ── CHILD process ──</span>
+        <span class="fn">printf</span>(<span class="str">"Child executing...\n"</span>);
+        <span class="fn">sleep</span>(<span class="num">2</span>);               <span class="cm">// Simulate 2s of work</span>
+        <span class="fn">printf</span>(<span class="str">"Child finished.\n"</span>);
+        <span class="fn">exit</span>(<span class="num">0</span>);
+
+    } <span class="kw">else if</span> (pid > <span class="num">0</span>) {      <span class="cm">// ── PARENT process ──</span>
+        <span class="fn">printf</span>(<span class="str">"Parent waiting for child...\n"</span>);
+        <span class="fn">wait</span>(<span class="tp">NULL</span>);             <span class="cm">// ← BLOCKS here until child exits</span>
+        <span class="fn">printf</span>(<span class="str">"Parent: Child has been reaped.\n"</span>);
+    }
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+    </div>
+
+    <div id="code-1" class="code-block fade-in hidden">
+      <div class="code-header">
+        <span>example_4_2_wait_status.c</span>
+        <span class="lang">C</span>
+      </div>
+      <pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;sys/wait.h&gt;</span>
+
+<span class="tp">int</span> <span class="fn">main</span>() {
+    <span class="tp">pid_t</span> pid = <span class="fn">fork</span>();
+
+    <span class="kw">if</span> (pid == <span class="num">0</span>) {            <span class="cm">// ── CHILD ──</span>
+        <span class="fn">printf</span>(<span class="str">"Child processing data...\n"</span>);
+        <span class="fn">exit</span>(<span class="num">42</span>);               <span class="cm">// Exit with code 42</span>
+
+    } <span class="kw">else if</span> (pid > <span class="num">0</span>) {      <span class="cm">// ── PARENT ──</span>
+        <span class="tp">int</span> status;
+        <span class="fn">wait</span>(&amp;status);          <span class="cm">// Pass pointer → capture exit info</span>
+
+        <span class="kw">if</span> (<span class="mac">WIFEXITED</span>(status)) {  <span class="cm">// Did child exit normally?</span>
+            <span class="tp">int</span> code = <span class="mac">WEXITSTATUS</span>(status); <span class="cm">// Extract the code</span>
+            <span class="fn">printf</span>(<span class="str">"Exit code: %d\n"</span>, code);   <span class="cm">// Prints: 42</span>
+        } <span class="kw">else</span> {
+            <span class="fn">printf</span>(<span class="str">"Child terminated abnormally.\n"</span>);
+        }
+    }
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+    </div>
+
+    <div id="code-2" class="code-block fade-in hidden">
+      <div class="code-header">
+        <span>example_4_3_zombie.c</span>
+        <span class="lang">C</span>
+      </div>
+      <pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;unistd.h&gt;</span>
+
+<span class="tp">int</span> <span class="fn">main</span>() {
+    <span class="tp">pid_t</span> pid = <span class="fn">fork</span>();
+
+    <span class="kw">if</span> (pid > <span class="num">0</span>) {             <span class="cm">// ── PARENT ──</span>
+        <span class="fn">printf</span>(<span class="str">"Parent running. NOT calling wait()!\n"</span>);
+        <span class="fn">sleep</span>(<span class="num">20</span>);              <span class="cm">// Parent alive but ignoring child</span>
+        <span class="fn">printf</span>(<span class="str">"Parent exiting now.\n"</span>);
+
+    } <span class="kw">else if</span> (pid == <span class="num">0</span>) {    <span class="cm">// ── CHILD ──</span>
+        <span class="fn">printf</span>(<span class="str">"Child exiting immediately.\n"</span>);
+        <span class="fn">exit</span>(<span class="num">0</span>);
+        <span class="cm">// ☠ Child is now ZOMBIE — entry stays in process table</span>
+        <span class="cm">// because parent never called wait() to reap it.</span>
+    }
+    <span class="kw">return</span> <span class="num">0</span>;
+}
+
+<span class="cm">// Run:  ps aux | grep Z   to see [defunct] zombie entries</span></pre>
+    </div>
+
+    <div id="macro-section" class="hidden">
+      <div class="macros-grid">
+        <div class="macro-card">
+          <code>WIFEXITED(status)</code>
+          <p>Returns <strong>true</strong> if the child terminated normally via <code style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--accent)">exit()</code> or returning from <code style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--accent)">main()</code>. Returns false if killed by a signal.</p>
+        </div>
+        <div class="macro-card">
+          <code>WEXITSTATUS(status)</code>
+          <p>Extracts the actual exit code (0–255) passed to <code style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--accent)">exit()</code>. Only valid when <code style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--accent)">WIFEXITED</code> is true.</p>
+        </div>
+        <div class="macro-card">
+          <code>WIFSIGNALED(status)</code>
+          <p>True if the child was killed by a signal (e.g., SIGSEGV, SIGKILL). Use <code style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--accent)">WTERMSIG(status)</code> to get the signal number.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-callout">
+      <p><strong style="color:var(--accent)">Key difference:</strong> <code>wait(NULL)</code> discards the exit status — use it when you don't care <em>how</em> the child exited, only <em>that</em> it did. Passing <code>&amp;status</code> lets you inspect the exit code with macros like <code>WIFEXITED</code> and <code>WEXITSTATUS</code>. For waiting on a <em>specific</em> child, use <code>waitpid(pid, &amp;status, 0)</code>.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 5: DYNAMIC PROCESS TABLE -->
+  <section>
+    <div class="section-label">
+      <span class="num">05</span>
+      <h2>Dynamic Process Table</h2>
+    </div>
+
+    <div class="ptable-wrap">
+      <div class="ptable-toolbar">
+        <div class="dots">
+          <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--muted);flex:1">kernel process table — live view</span>
+        <div class="tabs" style="margin:0;border:none;background:transparent;padding:0;gap:6px;">
+          <button class="tab active" onclick="switchPtable(0,this)" style="flex:none;padding:6px 12px;font-size:0.7rem">Normal</button>
+          <button class="tab" onclick="switchPtable(1,this)" style="flex:none;padding:6px 12px;font-size:0.7rem">Zombie Scenario</button>
+        </div>
+        <button class="btn btn-primary" id="pt-run-btn" onclick="runPtable()" style="padding:6px 14px;font-size:0.75rem">▶ Run</button>
+        <button class="btn btn-ghost" onclick="resetPtable()" style="padding:6px 14px;font-size:0.75rem">↺</button>
+      </div>
+
+      <table class="ptable">
+        <thead>
+          <tr>
+            <th>PID</th>
+            <th>PPID</th>
+            <th>State</th>
+            <th>Name</th>
+            <th>Exit Code</th>
+            <th>Memory</th>
+          </tr>
+        </thead>
+        <tbody id="ptable-body">
+          <tr class="row-running">
+            <td style="color:var(--muted)">1</td>
+            <td style="color:var(--muted)">0</td>
+            <td><span class="state-pill pill-run">RUNNING</span></td>
+            <td style="color:var(--muted)">init</td>
+            <td style="color:var(--muted)">—</td>
+            <td style="color:var(--muted)">1.2 MB</td>
+          </tr>
+          <tr class="row-running" id="pt-parent-row">
+            <td style="color:var(--parent)">100</td>
+            <td style="color:var(--muted)">1</td>
+            <td id="pt-parent-state"><span class="state-pill pill-run">RUNNING</span></td>
+            <td style="color:var(--parent)">parent</td>
+            <td id="pt-parent-exit" style="color:var(--muted)">—</td>
+            <td style="color:var(--muted)">2.4 MB</td>
+          </tr>
+          <tr id="pt-child-row" style="display:none">
+            <td style="color:var(--child)">101</td>
+            <td style="color:var(--muted)">100</td>
+            <td id="pt-child-state"><span class="state-pill pill-run">RUNNING</span></td>
+            <td style="color:var(--child)">child</td>
+            <td id="pt-child-exit" style="color:var(--muted)">—</td>
+            <td id="pt-child-mem" style="color:var(--muted)">1.8 MB</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="ptable-note" id="ptable-note">Waiting for simulation — press Run</div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: COMMON MISTAKES -->
+  <section>
+    <div class="section-label">
+      <span class="num">06</span>
+      <h2>Common Mistakes</h2>
+    </div>
+
+    <div class="mistakes-grid">
+      <div class="mistake-card">
+        <div class="mistake-icon">🧟</div>
+        <div class="mistake-title">Forgetting wait()</div>
+        <div class="mistake-desc">Child exits but parent never calls <code style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--accent2)">wait()</code>. The child becomes a zombie — its entry stays in the process table consuming resources until the parent exits.</div>
+        <div class="mistake-fix">Always call wait() or waitpid() after fork() to reap children.</div>
+      </div>
+
+
+
+      <div class="mistake-card">
+        <div class="mistake-icon">📭</div>
+        <div class="mistake-title">Ignoring Exit Codes</div>
+        <div class="mistake-desc">Using <code style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--accent2)">wait(NULL)</code> discards the child's exit status. If the child fails with a non-zero code, the parent has no way to detect or handle the error.</div>
+        <div class="mistake-fix">Pass &status and use WIFEXITED / WEXITSTATUS to check for errors.</div>
+      </div>
+
+      <div class="mistake-card">
+        <div class="mistake-icon">👻</div>
+        <div class="mistake-title">Wrong PID Assumption</div>
+        <div class="mistake-desc">Both parent and child continue after <code style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--accent2)">fork()</code>. Forgetting to check the return value means both processes execute the same branch, causing subtle bugs.</div>
+        <div class="mistake-fix">Always check: pid == 0 (child), pid > 0 (parent), pid < 0 (error).</div>
+      </div>
+
+      <div class="mistake-card">
+        <div class="mistake-icon">🔒</div>
+        <div class="mistake-title">Deadlock via wait()</div>
+        <div class="mistake-desc">If a parent calls <code style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--accent2)">wait()</code> but has no children (because fork() failed), it blocks forever waiting for a process that will never come.</div>
+        <div class="mistake-fix">Check fork() return value. Only call wait() if pid > 0 succeeded.</div>
+      </div>
+
+      <div class="mistake-card">
+        <div class="mistake-icon">📡</div>
+        <div class="mistake-title">Missing SIGCHLD Handler</div>
+        <div class="mistake-desc">In long-running daemons, not handling <code style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--accent2)">SIGCHLD</code> asynchronously causes zombies to accumulate over time, gradually exhausting the process table.</div>
+        <div class="mistake-fix">Set signal(SIGCHLD, SIG_IGN) or install a SIGCHLD handler that calls waitpid(-1, NULL, WNOHANG).</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 7: QUIZ -->
+  <section>
+    <div class="section-label">
+      <span class="num">07</span>
+      <h2>Quick Check</h2>
+    </div>
+
+    <div class="quiz-area">
+      <div id="quiz-container"></div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="container" style="position:relative;">
+    Operating Systems — Interactive Portfolio &nbsp;·&nbsp; wait() System Call &nbsp;·&nbsp; Linux
+    <span style="position:absolute;right:0;bottom:0;font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:#ff4d88;">By Zayinab Swara</span>
+  </div>
+</footer>
+
+<script>
+// ─── DEMO (Section 01) ────────────────────────────────────────────────────────
+let currentDemo = 0;
+let running = false;
+let animFrames = [];
+
+const demos = [
+  { title: "example_4_1_simple_wait.c" },
+  { title: "example_4_2_wait_status.c" },
+  { title: "example_4_3_zombie.c" }
+];
+
+function getSpeed() { return parseFloat(document.getElementById('speed-slider').value); }
+
+document.getElementById('speed-slider').addEventListener('input', function() {
+  document.getElementById('speed-label').textContent = this.value + 'x';
+});
+
+function log(cls, msg) {
+  const t = document.getElementById('terminal');
+  const line = document.createElement('span');
+  line.className = 'log-line ' + cls;
+  line.textContent = msg;
+  t.appendChild(line);
+  t.appendChild(document.createElement('br'));
+  t.scrollTop = t.scrollHeight;
+}
+
+function setBar(id, pct, label, cls) {
+  const bar = document.getElementById('bar-' + id);
+  bar.style.width = pct + '%';
+  if (cls) bar.className = 'bar-fill ' + cls;
+  document.getElementById('lbl-' + id).textContent = label;
+}
+
+function setDot(id, cls) {
+  const dot = document.getElementById('dot-' + id);
+  if (dot) dot.className = 'status-dot ' + cls;
+}
+
+function setStat(id, val, color) {
+  const el = document.getElementById('stat-' + id);
+  el.textContent = val;
+  if (color) el.style.color = color;
+}
+
+function resetDemo() {
+  animFrames.forEach(clearTimeout);
+  animFrames = [];
+  running = false;
+  document.getElementById('terminal').innerHTML = '<span class="log-line sys">$ ./' + demos[currentDemo].title.replace('.c','') + '  ← press Run to execute</span>';
+  setBar('parent', 0, 'Ready', 'bar-fill bar-parent');
+  setBar('child',  0, 'Ready', 'bar-fill bar-child');
+  document.getElementById('dot-parent').className = 'status-dot dot-active';
+  document.getElementById('dot-child').className  = 'status-dot dot-active';
+  setStat('parent', 'IDLE', 'var(--parent)');
+  setStat('child',  'IDLE', 'var(--child)');
+  setStat('exit',   '—',   'var(--accent2)');
+  document.getElementById('zombie-row').style.display = 'none';
+  document.getElementById('run-btn').disabled = false;
+}
+
+function delay(ms) { return ms / getSpeed(); }
+
+function runDemo() {
+  if (running) return;
+  running = true;
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('terminal').innerHTML = '';
+
+  function sched(t, fn) { animFrames.push(setTimeout(fn, delay(t))); }
+
+  if (currentDemo === 0) {
+    sched(0,    () => { log('sys','$ ./example_4_1'); log('parent','[PID 100] fork() called — spawning child...'); setBar('parent',20,'▶ fork()','bar-fill bar-parent'); setStat('parent','RUNNING','var(--parent)'); setStat('child','RUNNING','var(--child)'); });
+    sched(1000,  () => { setBar('child',20,'▶ Executing','bar-fill bar-child'); log('child','[PID 101] Child executing...'); });
+    sched(1600,  () => { setBar('parent',35,'⏸ wait(NULL)','bar-fill bar-waiting'); log('parent','[PID 100] Parent waiting for child...'); setStat('parent','WAITING','var(--muted)'); setDot('parent','dot-waiting'); });
+    sched(2000, () => { setBar('child',50,'⚙ sleep(2)','bar-fill bar-child'); log('child','[PID 101] Child sleeping 2s...'); });
+    sched(3600, () => { setBar('child',90,'✓ Finished','bar-fill bar-child'); log('child','[PID 101] Child finished.'); setDot('child','dot-done'); setStat('child','EXITED','var(--green)'); setStat('exit','0 ✓','var(--green)'); });
+    sched(4000, () => { setBar('parent',90,'✓ Reaped!','bar-fill bar-parent'); log('os','  [OS]  Child reaped — resources freed.'); log('parent','[PID 100] Parent: Child has been reaped.'); setDot('parent','dot-done'); setStat('parent','DONE','var(--green)'); });
+    sched(4800, () => { log('sys','$ _'); running = false; document.getElementById('run-btn').disabled = false; });
+
+  } else if (currentDemo === 1) {
+    sched(0,    () => { log('sys','$ ./example_4_2'); log('parent','[PID 100] fork() called...'); setBar('parent',20,'▶ fork()','bar-fill bar-parent'); setStat('parent','RUNNING','var(--parent)'); setStat('child','RUNNING','var(--child)'); });
+    sched(800,  () => { setBar('child',30,'▶ Processing','bar-fill bar-child'); log('child','[PID 101] Child processing data...'); });
+    sched(1400,  () => { setBar('parent',40,'⏸ wait(&status)','bar-fill bar-waiting'); log('parent','[PID 100] wait(&status) called — blocking...'); setStat('parent','WAITING','var(--muted)'); setDot('parent','dot-waiting'); });
+    sched(2000, () => { setBar('child',90,'exit(42)','bar-fill bar-child'); log('child','[PID 101] exit(42) — child terminates.'); setDot('child','dot-done'); setStat('child','EXITED','var(--green)'); setStat('exit','42','var(--accent2)'); });
+    sched(2800, () => { setBar('parent',90,'✓ Status read','bar-fill bar-parent'); log('os','  [OS]  Child reaped, status passed to parent.'); log('parent','[PID 100] WIFEXITED → true'); log('parent','[PID 100] WEXITSTATUS → 42'); setDot('parent','dot-done'); setStat('parent','DONE','var(--green)'); });
+    sched(3600, () => { log('sys','$ _'); running = false; document.getElementById('run-btn').disabled = false; });
+
+  } else {
+    sched(0,    () => { log('sys','$ ./example_4_3'); log('parent','[PID 100] fork() called...'); setBar('parent',15,'▶ Running','bar-fill bar-parent'); setStat('parent','RUNNING','var(--parent)'); setStat('child','RUNNING','var(--child)'); });
+    sched(800,  () => { setBar('child',30,'exit(0)','bar-fill bar-child'); log('child','[PID 101] Child exiting immediately.'); });
+    sched(1400,  () => { log('parent','[PID 100] Parent running — NOT calling wait()!'); setBar('parent',40,'sleep(20) — no wait()','bar-fill bar-parent'); setStat('parent','SLEEPING','var(--accent2)'); });
+    sched(2000,  () => {
+      document.getElementById('zombie-row').style.display = 'flex';
+      setBar('zombie',95,'☠ Zombie [defunct]','bar-fill bar-zombie');
+      setStat('child','ZOMBIE ☠','var(--zombie)'); setStat('exit','0 (unreported)','var(--zombie)');
+      log('zombie','[PID 101] ☠ ZOMBIE — child exited but parent never called wait()!');
+      log('os','  [OS]  Entry still in process table. Resources NOT freed.');
+    });
+    sched(2800, () => { log('zombie','  $ ps aux | grep Z'); log('zombie','  101  Z+  [defunct]  ← zombie in process table'); });
+    sched(3800, () => { log('parent','[PID 100] Parent finally exits...'); log('os','  [OS]  init adopts zombie → auto-reaped.'); setDot('parent','dot-done'); setStat('parent','EXITED','var(--green)'); });
+    sched(4600, () => { log('sys','$ _'); running = false; document.getElementById('run-btn').disabled = false; });
+  }
+}
+
+function switchDemo(idx, el) {
+  currentDemo = idx;
+  document.getElementById('demo-tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  resetDemo();
+}
+
+// ─── CODE TABS ────────────────────────────────────────────────────────────────
+function switchCode(idx, el) {
+  document.getElementById('code-tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  [0,1,2].forEach(i => document.getElementById('code-'+i).classList.toggle('hidden', i !== idx));
+  const ms = document.getElementById('macro-section');
+  if (ms) ms.classList.toggle('hidden', idx !== 1);
+}
+
+// ─── PROCESS TREE (Section 02) ───────────────────────────────────────────────
+let treeMode = 0; // 0=normal, 1=zombie
+let treeRunning = false;
+let treeFrames = [];
+
+function switchTree(mode, el) {
+  treeMode = mode;
+  document.querySelectorAll('.tree-toolbar .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  resetTree();
+}
+
+function resetTree() {
+  treeFrames.forEach(clearTimeout);
+  treeFrames = [];
+  treeRunning = false;
+  document.getElementById('tree-run-btn').disabled = false;
+  document.getElementById('tn-child').className = 'tree-node child-node';
+  document.getElementById('tn-child').style.opacity = '0.25';
+  document.getElementById('tn-child').textContent = 'child(101)';
+  document.getElementById('tn-parent').className = 'tree-node parent-node';
+  document.getElementById('tn-parent').textContent = 'parent(100)';
+  document.getElementById('tree-annotation').textContent = 'Press Animate to step through the process lifecycle →';
+  ['fork','wait','zombie','reap'].forEach(k => {
+    document.getElementById('tbadge-'+k).className = 'tree-badge';
+  });
+}
+
+function setTreeAnnotation(txt) { document.getElementById('tree-annotation').textContent = txt; }
+function activateBadge(id, cls) { document.getElementById('tbadge-'+id).className = 'tree-badge ' + cls; }
+
+function runTree() {
+  if (treeRunning) return;
+  treeRunning = true;
+  document.getElementById('tree-run-btn').disabled = true;
+
+  function ts(t, fn) { treeFrames.push(setTimeout(fn, t)); }
+
+  if (treeMode === 0) {
+    // Normal wait
+    ts(0,    () => { setTreeAnnotation('fork() called — child(101) spawned from parent(100)'); activateBadge('fork','active-badge'); document.getElementById('tn-child').style.opacity='1'; });
+    ts(900,  () => { setTreeAnnotation('Parent calls wait() — suspending until child exits'); activateBadge('wait','active-badge'); document.getElementById('tn-parent').textContent='parent(100) ⏸'; });
+    ts(1800, () => { setTreeAnnotation('Child finishes work and calls exit(0)'); document.getElementById('tn-child').className='tree-node reaped-node'; document.getElementById('tn-child').textContent='child(101) ✓ exited'; });
+    ts(2600, () => { setTreeAnnotation('Kernel sends SIGCHLD → parent wakes, reaps child via wait()'); activateBadge('reap','done-badge'); document.getElementById('tn-child').className='tree-node gone-node'; document.getElementById('tn-child').textContent='child(101) [reaped]'; document.getElementById('tn-parent').textContent='parent(100) ✓'; });
+    ts(3400, () => { setTreeAnnotation('✓ Clean: child removed from process tree. No zombies!'); treeRunning = false; document.getElementById('tree-run-btn').disabled = false; });
+
+  } else {
+    // Zombie scenario
+    ts(0,    () => { setTreeAnnotation('fork() called — child(101) spawned'); activateBadge('fork','active-badge'); document.getElementById('tn-child').style.opacity='1'; });
+    ts(900,  () => { setTreeAnnotation('Child exits immediately. Parent does NOT call wait()!'); document.getElementById('tn-child').className='tree-node zombie-node'; document.getElementById('tn-child').textContent='child(101) ☠ ZOMBIE'; activateBadge('zombie','zombie-badge'); });
+    ts(1800, () => { setTreeAnnotation('☠ Zombie lingers: entry stays in process table. Resources NOT freed.'); });
+    ts(2800, () => { setTreeAnnotation('Parent eventually exits → init(1) adopts and reaps the zombie'); document.getElementById('tn-child').className='tree-node gone-node'; document.getElementById('tn-child').textContent='child(101) [auto-reaped]'; activateBadge('reap','done-badge'); });
+    ts(3600, () => { setTreeAnnotation('⚠ Danger: during the gap, the zombie wasted a process table slot'); treeRunning = false; document.getElementById('tree-run-btn').disabled = false; });
+  }
+}
+
+// ─── SYSCALL FLOW (Section 03) ────────────────────────────────────────────────
+let flowStep = 0;
+let flowRunning = false;
+
+const flowSteps = [
+  { nodes: ['fn-fork','fn-child-runs'], arrows: [], status: 'fork() splits execution — parent and child now run independently' },
+  { nodes: ['fn-wait','fn-child-work'], arrows: ['fa-1','fa-9'], status: 'Parent calls wait() | Child executes its workload' },
+  { nodes: ['fn-blocked','fn-sched'], arrows: ['fa-2','fa-5'], status: 'wait() traps into kernel → Scheduler blocks the parent process' },
+  { nodes: ['fn-block-parent','fn-child-exit'], arrows: ['fa-6','fa-10'], status: 'Kernel suspends parent | Child finishes and calls exit()' },
+  { nodes: ['fn-receive','fn-child-zombie'], arrows: ['fa-11'], status: 'Child becomes zombie briefly — kernel receives SIGCHLD signal' },
+  { nodes: ['fn-ptable','fn-child-gone'], arrows: ['fa-7','fa-12'], status: 'Kernel removes child from process table — resources freed' },
+  { nodes: ['fn-wake','fn-woken'], arrows: ['fa-8','fa-3'], status: 'Kernel wakes parent → wait() returns with exit status' },
+  { nodes: ['fn-continues'], arrows: ['fa-4'], status: '✓ Parent continues execution. Lifecycle complete!' },
+];
+
+function resetFlow() {
+  flowStep = 0;
+  flowRunning = false;
+  document.getElementById('flow-run-btn').textContent = '▶ Step';
+  document.getElementById('flow-status').textContent = 'Press Step to walk through the system call flow';
+  document.querySelectorAll('.flow-node').forEach(n => { n.classList.remove('active','done-node'); });
+  document.querySelectorAll('.flow-arrow').forEach(a => a.classList.remove('lit'));
+}
+
+function runFlow() {
+  if (flowStep >= flowSteps.length) { resetFlow(); return; }
+  const step = flowSteps[flowStep];
+  // Dim previously active
+  document.querySelectorAll('.flow-node.active').forEach(n => { n.classList.remove('active'); n.classList.add('done-node'); });
+  // Light new nodes
+  step.nodes.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('done-node'); el.classList.add('active'); }
+  });
+  // Light arrows
+  step.arrows.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('lit');
+  });
+  document.getElementById('flow-status').textContent = step.status;
+  flowStep++;
+  if (flowStep >= flowSteps.length) {
+    document.getElementById('flow-run-btn').textContent = '↺ Restart';
+  }
+}
+
+// ─── PROCESS TABLE (Section 05) ──────────────────────────────────────────────
+let ptableMode = 0;
+let ptRunning = false;
+let ptFrames = [];
+
+function switchPtable(mode, el) {
+  ptableMode = mode;
+  document.querySelectorAll('.ptable-toolbar .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  resetPtable();
+}
+
+function resetPtable() {
+  ptFrames.forEach(clearTimeout);
+  ptFrames = [];
+  ptRunning = false;
+  document.getElementById('pt-run-btn').disabled = false;
+  const childRow = document.getElementById('pt-child-row');
+  childRow.style.display = 'none';
+  childRow.className = '';
+  document.getElementById('pt-parent-state').innerHTML = '<span class="state-pill pill-run">RUNNING</span>';
+  document.getElementById('pt-parent-exit').textContent = '—';
+  document.getElementById('pt-parent-row').className = 'row-running';
+  document.getElementById('pt-child-state').innerHTML = '<span class="state-pill pill-run">RUNNING</span>';
+  document.getElementById('pt-child-exit').textContent = '—';
+  document.getElementById('pt-child-mem').textContent = '1.8 MB';
+  document.getElementById('ptable-note').textContent = 'Waiting for simulation — press Run';
+}
+
+function runPtable() {
+  if (ptRunning) return;
+  ptRunning = true;
+  document.getElementById('pt-run-btn').disabled = true;
+
+  function ps(t, fn) { ptFrames.push(setTimeout(fn, t)); }
+  const note = id => document.getElementById('ptable-note').textContent = id;
+
+  if (ptableMode === 0) {
+    // Normal
+    ps(0,    () => { note('fork() — child process 101 created and added to table'); document.getElementById('pt-child-row').style.display=''; document.getElementById('pt-child-row').className='row-running row-new'; });
+    ps(700,  () => { note('Parent calls wait() — state changes to WAITING'); document.getElementById('pt-parent-state').innerHTML='<span class="state-pill pill-wait">WAITING</span>'; document.getElementById('pt-parent-row').className='row-waiting'; });
+    ps(1400, () => { note('Child sleeping — CPU given to other processes'); document.getElementById('pt-child-state').innerHTML='<span class="state-pill pill-sleep">SLEEPING</span>'; });
+    ps(2100, () => { note('Child calls exit(0) — state briefly becomes ZOMBIE before reaping'); document.getElementById('pt-child-state').innerHTML='<span class="state-pill pill-zombie">ZOMBIE</span>'; document.getElementById('pt-child-exit').textContent='0'; document.getElementById('pt-child-row').className='row-zombie'; });
+    ps(2800, () => { note('wait() reaps child — kernel removes entry from process table'); document.getElementById('pt-child-row').className='row-done'; document.getElementById('pt-child-mem').textContent='freed'; setTimeout(()=>{ document.getElementById('pt-child-row').style.display='none'; },600); });
+    ps(3400, () => { note('✓ Parent resumes RUNNING — process table clean'); document.getElementById('pt-parent-state').innerHTML='<span class="state-pill pill-run">RUNNING</span>'; document.getElementById('pt-parent-row').className='row-running'; document.getElementById('pt-parent-exit').textContent='—'; ptRunning=false; document.getElementById('pt-run-btn').disabled=false; });
+
+  } else {
+    // Zombie scenario
+    ps(0,    () => { note('fork() — child process 101 spawned'); document.getElementById('pt-child-row').style.display=''; document.getElementById('pt-child-row').className='row-running row-new'; });
+    ps(700,  () => { note('Child exits immediately — parent still running, no wait() call!'); document.getElementById('pt-child-state').innerHTML='<span class="state-pill pill-zombie">ZOMBIE ☠</span>'; document.getElementById('pt-child-exit').textContent='0'; document.getElementById('pt-child-row').className='row-zombie'; });
+    ps(1400, () => { note('⚠ Zombie lingers! Entry stuck in table. 1.8 MB of memory NOT freed.'); });
+    ps(2200, () => { note('⚠ Zombie still present — every new fork() with no wait() adds more!'); });
+    ps(3000, () => { note('Parent exits → init(1) adopts zombie and auto-reaps it'); document.getElementById('pt-parent-row').className='row-done'; document.getElementById('pt-parent-state').innerHTML='<span class="state-pill pill-exit">EXITED</span>'; setTimeout(()=>{ document.getElementById('pt-child-row').className='row-done'; document.getElementById('pt-child-mem').textContent='freed'; },400); });
+    ps(3800, () => { note('⚠ Damage done: zombie occupied a process table slot for the entire duration'); ptRunning=false; document.getElementById('pt-run-btn').disabled=false; });
+  }
+}
+
+// ─── QUIZ ─────────────────────────────────────────────────────────────────────
+const questions = [
+  { q:"What happens to the parent process when it calls wait()?", opts:["It continues executing normally","It is suspended until a child process exits","It creates a new child process","It sends a signal to the child"], ans:1, expl:"✓ wait() blocks the parent — its execution is suspended until one of its child processes terminates." },
+  { q:"What is a zombie process?", opts:["A process that is using too much CPU","A child that has exited but whose parent never called wait()","A parent process waiting for a child","A process killed by SIGKILL"], ans:1, expl:"✓ A zombie is a child that has finished executing but whose exit status hasn't been collected by the parent via wait(), so its entry stays in the process table." },
+  { q:"What does passing NULL to wait(NULL) mean?", opts:["Wait for a specific child only","The parent doesn't wait at all","The exit status is ignored / not captured","The child is killed immediately"], ans:2, expl:"✓ Passing NULL discards the exit status. If you want to inspect how the child exited, pass a pointer: wait(&status)." },
+  { q:"Which macro checks if a child exited normally (not killed by a signal)?", opts:["WEXITSTATUS(status)","WIFSIGNALED(status)","WIFEXITED(status)","WTERMSIG(status)"], ans:2, expl:"✓ WIFEXITED(status) returns true when the child exited normally via exit() or returning from main()." },
+  { q:"In Example 4.2, what value does WEXITSTATUS(status) return?", opts:["0","1","100","42"], ans:3, expl:"✓ The child calls exit(42), so WEXITSTATUS extracts 42 as the exit code." }
+];
+
+let qIdx = 0, score = 0, answered = false;
+
+function renderQuiz() {
+  const q = questions[qIdx];
+  document.getElementById('quiz-container').innerHTML = `
+    <p class="quiz-progress">Question ${qIdx+1} of ${questions.length} &nbsp;·&nbsp; Score: ${score}/${questions.length}</p>
+    <br>
+    <p class="quiz-q">${q.q}</p>
+    <div class="quiz-options">
+      ${q.opts.map((o,i)=>`<button class="quiz-opt" onclick="answer(${i})">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}
+    </div>
+    <div class="quiz-feedback" id="qfb"></div>
+    <div class="quiz-nav">
+      <span></span>
+      <button class="btn btn-ghost" id="next-btn" onclick="nextQ()" style="display:none">Next →</button>
+    </div>
+  `;
+  answered = false;
+}
+
+function answer(idx) {
+  if (answered) return;
+  answered = true;
+  const q = questions[qIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((b,i) => { b.disabled=true; if(i===q.ans) b.classList.add('correct'); else if(i===idx&&idx!==q.ans) b.classList.add('wrong'); });
+  const fb = document.getElementById('qfb');
+  if (idx === q.ans) { score++; fb.className='quiz-feedback show good'; fb.textContent=q.expl; }
+  else { fb.className='quiz-feedback show bad'; fb.textContent='✗ Not quite. '+q.expl; }
+  const nb = document.getElementById('next-btn');
+  nb.style.display='inline-block';
+  nb.textContent = qIdx < questions.length-1 ? 'Next →' : 'See Results';
+}
+
+function nextQ() { qIdx++; if(qIdx>=questions.length){showResults();return;} renderQuiz(); }
+
+function showResults() {
+  const pct = Math.round((score/questions.length)*100);
+  const msg = pct===100?'🏆 Perfect! You nailed it.':pct>=80?'✓ Great work!':pct>=60?'Good effort — review the demos.':'Keep studying — replay the demos above!';
+  document.getElementById('quiz-container').innerHTML = `
+    <p class="quiz-q" style="text-align:center;font-size:1.1rem">Quiz Complete!</p><br>
+    <div style="text-align:center;padding:28px 0">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:3rem;font-weight:700;color:var(--accent)">${score}/${questions.length}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:1rem;color:var(--muted);margin-top:6px">${pct}% — ${msg}</div>
+    </div>
+    <div style="text-align:center"><button class="btn btn-primary" onclick="restartQuiz()">↺ Retry Quiz</button></div>
+  `;
+}
+
+function restartQuiz() { qIdx=0; score=0; answered=false; renderQuiz(); }
+
+renderQuiz();
+</script>
+</body>
+</html>

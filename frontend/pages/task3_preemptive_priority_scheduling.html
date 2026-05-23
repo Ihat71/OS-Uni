@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Preemptive Priority Scheduling</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f4f6f9;
+      color: #222;
+    }
+
+    h1, h2 {
+      text-align: center;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    p {
+      line-height: 1.7;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+
+    th {
+      background: #222;
+      color: white;
+      padding: 10px;
+    }
+
+    td {
+      padding: 10px;
+      text-align: center;
+    }
+
+    input {
+      width: 80px;
+      padding: 5px;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .gantt {
+      display: flex;
+      margin-top: 30px;
+      overflow-x: auto;
+    }
+
+    .block {
+      min-width: 60px;
+      padding: 20px;
+      color: white;
+      text-align: center;
+      font-weight: bold;
+      position: relative;
+    }
+
+    .time {
+      position: absolute;
+      bottom: -25px;
+      left: 0;
+      color: black;
+      font-size: 14px;
+    }
+
+    .result-box {
+      margin-top: 30px;
+    }
+
+    .info {
+      background: #eef4ff;
+      padding: 15px;
+      border-left: 5px solid #2563eb;
+      margin-top: 20px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Priority Scheduling (Preemptive)</h1>
+
+    <div class="info">
+      <p>
+        <strong>Preemptive Priority Scheduling</strong> is a CPU scheduling algorithm where the process
+        with the highest priority gets executed first. If a new process arrives with a higher
+        priority than the currently running process, the CPU immediately switches to the new process.
+        This switching is called <strong>preemption</strong>.
+      </p>
+      <p>
+        In this demo, smaller priority numbers mean higher priority.
+      </p>
+    </div>
+
+    <h2>Process Input</h2>
+
+    <table id="processTable">
+      <tr>
+        <th>Process</th>
+        <th>Arrival Time</th>
+        <th>Burst Time</th>
+        <th>Priority</th>
+      </tr>
+      <tr>
+        <td>P1</td>
+        <td><input type="number" value="0"></td>
+        <td><input type="number" value="5"></td>
+        <td><input type="number" value="2"></td>
+      </tr>
+      <tr>
+        <td>P2</td>
+        <td><input type="number" value="1"></td>
+        <td><input type="number" value="3"></td>
+        <td><input type="number" value="1"></td>
+      </tr>
+      <tr>
+        <td>P3</td>
+        <td><input type="number" value="2"></td>
+        <td><input type="number" value="4"></td>
+        <td><input type="number" value="3"></td>
+      </tr>
+      <tr>
+        <td>P4</td>
+        <td><input type="number" value="3"></td>
+        <td><input type="number" value="2"></td>
+        <td><input type="number" value="2"></td>
+      </tr>
+    </table>
+
+    <button onclick="runScheduler()">Run Scheduler</button>
+
+    <div class="result-box">
+      <h2>Gantt Chart</h2>
+      <div class="gantt" id="gantt"></div>
+    </div>
+
+    <div class="result-box">
+      <h2>Results</h2>
+      <table id="resultTable">
+        <tr>
+          <th>Process</th>
+          <th>Completion Time</th>
+          <th>Turnaround Time</th>
+          <th>Waiting Time</th>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function runScheduler() {
+      const rows = document.querySelectorAll('#processTable tr');
+      const processes = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const inputs = rows[i].querySelectorAll('input');
+
+        processes.push({
+          id: 'P' + i,
+          arrival: parseInt(inputs[0].value),
+          burst: parseInt(inputs[1].value),
+          priority: parseInt(inputs[2].value),
+          remaining: parseInt(inputs[1].value),
+          completion: 0
+        });
+      }
+
+      let time = 0;
+      let completed = 0;
+      let ganttData = [];
+
+      while (completed < processes.length) {
+        let current = null;
+
+        for (let p of processes) {
+          if (p.arrival <= time && p.remaining > 0) {
+            if (
+              current === null ||
+              p.priority < current.priority ||
+              (p.priority === current.priority && p.arrival < current.arrival)
+            ) {
+              current = p;
+            }
+          }
+        }
+
+        if (current === null) {
+          ganttData.push('Idle');
+          time++;
+          continue;
+        }
+
+        ganttData.push(current.id);
+        current.remaining--;
+        time++;
+
+        if (current.remaining === 0) {
+          current.completion = time;
+          completed++;
+        }
+      }
+
+      displayGantt(ganttData);
+      displayResults(processes);
+    }
+
+    function displayGantt(data) {
+      const gantt = document.getElementById('gantt');
+      gantt.innerHTML = '';
+
+      const colors = {
+        P1: '#ef4444',
+        P2: '#22c55e',
+        P3: '#3b82f6',
+        P4: '#f59e0b',
+        Idle: '#6b7280'
+      };
+
+      data.forEach((item, index) => {
+        const block = document.createElement('div');
+        block.className = 'block';
+        block.style.background = colors[item] || '#000';
+        block.innerHTML = `${item}<div class="time">${index}</div>`;
+
+        gantt.appendChild(block);
+      });
+
+      const finalTime = document.createElement('div');
+      finalTime.style.marginTop = '40px';
+      finalTime.innerHTML = `<strong>Final Time: ${data.length}</strong>`;
+      gantt.appendChild(finalTime);
+    }
+
+    function displayResults(processes) {
+      const table = document.getElementById('resultTable');
+
+      table.innerHTML = `
+        <tr>
+          <th>Process</th>
+          <th>Completion Time</th>
+          <th>Turnaround Time</th>
+          <th>Waiting Time</th>
+        </tr>
+      `;
+
+      let totalWT = 0;
+      let totalTAT = 0;
+
+      processes.forEach(p => {
+        const tat = p.completion - p.arrival;
+        const wt = tat - p.burst;
+
+        totalWT += wt;
+        totalTAT += tat;
+
+        table.innerHTML += `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.completion}</td>
+            <td>${tat}</td>
+            <td>${wt}</td>
+          </tr>
+        `;
+      });
+
+      table.innerHTML += `
+        <tr>
+          <td colspan="2"><strong>Averages</strong></td>
+          <td><strong>${(totalTAT / processes.length).toFixed(2)}</strong></td>
+          <td><strong>${(totalWT / processes.length).toFixed(2)}</strong></td>
+        </tr>
+      `;
+    }
+  </script>
+</body>
+</html>

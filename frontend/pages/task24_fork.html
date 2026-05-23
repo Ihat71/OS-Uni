@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Topic 24 - fork()</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #eef2f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+
+        h1 {
+            background: #1e466e;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+        h2 {
+            color: #1e466e;
+            border-left: 5px solid #1e466e;
+            padding-left: 10px;
+            margin-top: 25px;
+        }
+
+        p, li {
+            font-size: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #aaa;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background: #d9e2ec;
+        }
+
+        pre {
+            background: #1e2a2e;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        .demo {
+            background: #f7f7e8;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #bbb;
+        }
+
+        button {
+            background: #1e466e;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #12304d;
+        }
+
+        .process {
+            display: inline-block;
+            background: white;
+            border: 1px solid #aaa;
+            border-top: 5px solid #1e466e;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        #output {
+            background: #111;
+            color: #90ee90;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            min-height: 80px;
+            font-family: monospace;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 25px;
+            color: #555;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Topic 24: fork() System Call</h1>
+
+    <h2>What is fork()?</h2>
+    <p>
+        The <b>fork()</b> system call is used in Unix/Linux operating systems to create a new process.
+        The original process is called the <b>parent process</b>, and the new process is called the
+        <b>child process</b>.
+    </p>
+
+    <p>
+        After fork(), both parent and child continue running from the next line of code.
+        They are separate processes and each one has its own process ID.
+    </p>
+
+    <h2>Return Values</h2>
+    <table>
+        <tr>
+            <th>Return Value</th>
+            <th>Meaning</th>
+        </tr>
+        <tr>
+            <td>0</td>
+            <td>The code is running inside the child process</td>
+        </tr>
+        <tr>
+            <td>Positive number</td>
+            <td>The code is running inside the parent process</td>
+        </tr>
+        <tr>
+            <td>-1</td>
+            <td>fork() failed</td>
+        </tr>
+    </table>
+
+    <h2>Simple C Example</h2>
+    <pre>
+#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+
+int main() {
+    pid_t pid = fork();
+
+    if (pid == 0) {
+        printf("This is the child process\n");
+    }
+    else if (pid > 0) {
+        printf("This is the parent process\n");
+    }
+    else {
+        printf("Fork failed\n");
+    }
+
+    return 0;
+}
+    </pre>
+
+    <h2>Interactive Demo</h2>
+    <div class="demo">
+        <p>Click the button to simulate calling fork().</p>
+
+        <button onclick="callFork()">Call fork()</button>
+        <button onclick="resetDemo()">Reset</button>
+
+        <div id="processArea">
+            <div class="process">
+                <b>Parent Process</b><br>
+                PID: 3000
+            </div>
+        </div>
+
+        <div id="output">
+            Output will appear here.
+        </div>
+    </div>
+
+    <h2>Explanation</h2>
+    <ul>
+        <li>Before fork(), there is only one process.</li>
+        <li>When fork() is called, the operating system creates a child process.</li>
+        <li>The parent receives the child PID.</li>
+        <li>The child receives 0 from fork().</li>
+        <li>Parent and child run independently.</li>
+    </ul>
+
+    <footer>
+        Operating Systems Web Portfolio - fork() System Call
+    </footer>
+
+</div>
+
+<script>
+    let childCount = 0;
+    let nextPID = 3001;
+
+    function callFork() {
+        childCount++;
+
+        let childPID = nextPID;
+        nextPID++;
+
+        let area = document.getElementById("processArea");
+
+        area.innerHTML += `
+            <div class="process">
+                <b>Child Process ${childCount}</b><br>
+                PID: ${childPID}<br>
+                fork() returns 0
+            </div>
+        `;
+
+        document.getElementById("output").innerHTML +=
+            "<br>fork() called..." +
+            "<br>Parent receives child PID: " + childPID +
+            "<br>Child receives: 0<br>";
+    }
+
+    function resetDemo() {
+        childCount = 0;
+        nextPID = 3001;
+
+        document.getElementById("processArea").innerHTML = `
+            <div class="process">
+                <b>Parent Process</b><br>
+                PID: 3000
+            </div>
+        `;
+
+        document.getElementById("output").innerHTML = "Output will appear here.";
+    }
+</script>
+
+</body>
+</html>

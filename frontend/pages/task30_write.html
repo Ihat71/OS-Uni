@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task 30 write()</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #0f172a;
+        color: white;
+        line-height: 1.6;
+      }
+
+      header {
+        background: linear-gradient(to right, #2563eb, #7c3aed);
+        text-align: center;
+        padding: 40px 20px;
+      }
+
+      .container {
+        width: 90%;
+        max-width: 1100px;
+        margin: auto;
+        padding: 40px 0;
+      }
+
+      section {
+        background-color: #1e293b;
+        padding: 25px;
+        margin-bottom: 30px;
+        border-radius: 15px;
+      }
+
+      h2 {
+        margin-bottom: 15px;
+        color: #60a5fa;
+      }
+
+      ul {
+        margin-left: 20px;
+      }
+
+      code {
+        background-color: #334155;
+        padding: 3px 6px;
+        border-radius: 5px;
+        color: #facc15;
+      }
+
+      .diagram {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        margin-top: 20px;
+        flex-wrap: wrap;
+      }
+
+      .box {
+        background-color: #334155;
+        padding: 20px;
+        border-radius: 12px;
+        min-width: 180px;
+        text-align: center;
+        font-weight: bold;
+      }
+
+      .arrow {
+        font-size: 2rem;
+        color: #60a5fa;
+      }
+
+      textarea {
+        width: 100%;
+        height: 120px;
+        padding: 15px;
+        border: none;
+        border-radius: 10px;
+        resize: none;
+        margin-bottom: 15px;
+      }
+
+      button {
+        background-color: #2563eb;
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 10px;
+        cursor: pointer;
+        margin-right: 10px;
+      }
+
+      .terminal {
+        background-color: black;
+        color: #00ff00;
+        padding: 20px;
+        margin-top: 20px;
+        border-radius: 10px;
+        min-height: 150px;
+        font-family: monospace;
+      }
+
+      footer {
+        text-align: center;
+        padding: 20px;
+        background-color: #020617;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>write() System Call</h1>
+      <p>Operating Systems Interactive Demo</p>
+    </header>
+
+    <div class="container">
+      <section>
+        <h2>What is write()?</h2>
+
+        <p>
+          The <code>write()</code> system call is used in Operating Systems to
+          send data from a process to an output destination such as:
+        </p>
+
+        <ul>
+          <li>Terminal Screen</li>
+          <li>Files</li>
+          <li>Pipes</li>
+          <li>Devices</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>How write() Works</h2>
+
+        <div class="diagram">
+          <div class="box">User Program</div>
+          <div class="arrow">→</div>
+          <div class="box">Operating System Kernel</div>
+          <div class="arrow">→</div>
+          <div class="box">Terminal / File</div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Interactive Demo</h2>
+
+        <p>
+          Type text below and press the button to simulate the
+          <code>write()</code> system call sending data to the terminal.
+        </p>
+
+        <!--This section is meant to simulate write and is called in the Javascript-->
+        <div class="demo-container">
+          <textarea
+            id="userInput"
+            placeholder="Type something here..."
+          ></textarea>
+
+          <!--prints out the text into the terminal-->
+          <button onclick="simulateWrite()">Execute write()</button>
+
+          <!--clears the terminal if you want to-->
+          <button onclick="clearTerminal()">Clear Terminal</button>
+
+          <div class="terminal" id="terminal">Terminal Output:</div>
+          <!--The output area-->
+        </div>
+      </section>
+
+      <section>
+        <h2>Return Value</h2>
+
+        <p>The <code>write()</code> system call returns:</p>
+
+        <ul>
+          <li>Number of bytes successfully written</li>
+          <li><code>-1</code> if an error occurs</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Real World Uses</h2>
+
+        <ul>
+          <li>Printing text to the terminal</li>
+          <li>Saving data into files</li>
+          <li>Communication between processes</li>
+          <li>System logging</li>
+        </ul>
+      </section>
+    </div>
+
+    <footer>Operating Systems Project — write() System Call</footer>
+
+    <script>
+      function simulateWrite() {
+        const input = document.getElementById("userInput").value;
+        const terminal = document.getElementById("terminal");
+
+        //checks to see if you entered nothing or only spaces
+        if (input.trim() === "") {
+          terminal.innerHTML +=
+            "<br><span style='color:red;'>write() failed: empty buffer</span>";
+          return;
+        }
+
+        //simulates succeful output
+        terminal.innerHTML += `<br>> ${input}`;
+
+        //saves the length of your input
+        const bytesWritten = input.length;
+
+        //this here displays how many bytes is returned based on your input length, 1 byte for each input
+        terminal.innerHTML += `<br><span style='color:cyan;'>write() returned ${bytesWritten} bytes</span><br>`;
+
+        //clears textarea after writing and executing
+        document.getElementById("userInput").value = "";
+      }
+
+      //removes all the outputs we executing in the "Terminal"
+      function clearTerminal() {
+        document.getElementById("terminal").innerHTML = "Terminal Output:";
+      }
+    </script>
+  </body>
+</html>

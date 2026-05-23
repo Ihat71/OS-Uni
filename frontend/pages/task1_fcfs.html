@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FCFS CPU Scheduler - Shaho Avdal Wasman</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #eef2ff, #f8fafc);
+      color: #1e293b;
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 25px;
+      border-radius: 16px;
+      background: #1e3a8a;
+      color: white;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 1rem;
+      opacity: 0.95;
+    }
+
+    section {
+      margin-bottom: 30px;
+      padding: 22px;
+      border-radius: 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      color: #1e3a8a;
+    }
+
+    h3 {
+      margin-top: 15px;
+      margin-bottom: 8px;
+      color: #334155;
+    }
+
+    ul {
+      margin-left: 22px;
+      margin-top: 8px;
+    }
+
+    .input-area {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 1rem;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    .secondary-btn {
+      background: #475569;
+      margin-left: 8px;
+    }
+
+    .secondary-btn:hover {
+      background: #334155;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    th {
+      background: #1e3a8a;
+      color: white;
+    }
+
+    tr:hover {
+      background: #f1f5f9;
+    }
+
+    .gantt-wrapper {
+      margin-top: 20px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+    }
+
+    .gantt {
+      display: flex;
+      align-items: stretch;
+      min-height: 80px;
+      margin-top: 10px;
+    }
+
+    .block {
+      min-width: 90px;
+      padding: 16px;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      border-right: 2px solid white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .time-line {
+      display: flex;
+      margin-top: 6px;
+      font-size: 0.9rem;
+      color: #334155;
+    }
+
+    .time-point {
+      min-width: 90px;
+      text-align: left;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+      margin-top: 18px;
+    }
+
+    .card {
+      background: white;
+      padding: 18px;
+      border-radius: 12px;
+      border-left: 6px solid #2563eb;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+    }
+
+    .card strong {
+      color: #1e3a8a;
+      font-size: 1.3rem;
+    }
+
+    .note {
+      background: #dbeafe;
+      border-left: 5px solid #2563eb;
+      padding: 14px;
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 25px;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 1.6rem;
+      }
+
+      .container {
+        padding: 18px;
+      }
+
+      .block, .time-point {
+        min-width: 75px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>FCFS CPU Scheduler</h1>
+      <p>Operating Systems Interactive Web Portfolio</p>
+      <p><strong>Student:</strong> Shaho Avdal Wasman | <strong>ID:</strong> 01-23-00473 | <strong>Topic:</strong> 1</p>
+    </header>
+
+    <section>
+      <h2>What is FCFS Scheduling?</h2>
+      <p>
+        FCFS stands for <strong>First Come, First Served</strong>. It is one of the simplest CPU scheduling algorithms.
+        In FCFS scheduling, the process that arrives first gets the CPU first. The CPU executes each process completely
+        before moving to the next process.
+      </p>
+
+      <h3>Real-life example</h3>
+      <p>
+        FCFS is like students standing in a line. The first student in the line is served first, then the second,
+        then the third, and so on. No one can skip the line.
+      </p>
+
+      <h3>Important points</h3>
+      <ul>
+        <li>FCFS is a <strong>non-preemptive</strong> scheduling algorithm.</li>
+        <li>Once a process starts, it keeps the CPU until it finishes.</li>
+        <li>It is simple and easy to understand.</li>
+        <li>It can cause long waiting time if a long process arrives first. This is called the <strong>convoy effect</strong>.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Try the Interactive FCFS Demo</h2>
+      <p>Enter process names, arrival times, and burst times. Use commas between values.</p>
+
+      <div class="input-area">
+        <div>
+          <label for="processes">Process Names</label>
+          <input id="processes" value="P1, P2, P3, P4" />
+        </div>
+        <div>
+          <label for="arrival">Arrival Times</label>
+          <input id="arrival" value="0, 1, 2, 3" />
+        </div>
+        <div>
+          <label for="burst">Burst Times</label>
+          <input id="burst" value="5, 3, 8, 6" />
+        </div>
+      </div>
+
+      <button onclick="runFCFS()">Run FCFS Scheduler</button>
+      <button class="secondary-btn" onclick="resetExample()">Reset Example</button>
+
+      <div class="note">
+        <strong>Formula:</strong><br>
+        Completion Time = Time when process finishes<br>
+        Turnaround Time = Completion Time − Arrival Time<br>
+        Waiting Time = Turnaround Time − Burst Time
+      </div>
+    </section>
+
+    <section id="outputSection" style="display:none;">
+      <h2>Scheduling Result</h2>
+
+      <div class="gantt-wrapper">
+        <h3>Gantt Chart</h3>
+        <div id="gantt" class="gantt"></div>
+        <div id="timeline" class="time-line"></div>
+      </div>
+
+      <h3>Process Table</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Process</th>
+            <th>Arrival Time</th>
+            <th>Burst Time</th>
+            <th>Start Time</th>
+            <th>Completion Time</th>
+            <th>Turnaround Time</th>
+            <th>Waiting Time</th>
+          </tr>
+        </thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+
+      <div class="summary">
+        <div class="card">
+          <p>Average Waiting Time</p>
+          <strong id="avgWaiting"></strong>
+        </div>
+        <div class="card">
+          <p>Average Turnaround Time</p>
+          <strong id="avgTurnaround"></strong>
+        </div>
+        <div class="card">
+          <p>Total Completion Time</p>
+          <strong id="totalTime"></strong>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Advantages and Disadvantages</h2>
+      <h3>Advantages</h3>
+      <ul>
+        <li>Very simple to understand and implement.</li>
+        <li>Fair in the sense that processes are handled in the order they arrive.</li>
+        <li>No starvation, because every process eventually gets the CPU.</li>
+      </ul>
+
+      <h3>Disadvantages</h3>
+      <ul>
+        <li>Average waiting time can be high.</li>
+        <li>Short processes may wait behind long processes.</li>
+        <li>It is not suitable for time-sharing systems where fast response is important.</li>
+      </ul>
+    </section>
+
+    <footer>
+      Created for Operating Systems Interactive Web Portfolio Assignment
+    </footer>
+  </div>
+
+  <script>
+    function parseInput(value) {
+      return value.split(",").map(item => item.trim()).filter(item => item !== "");
+    }
+
+    function runFCFS() {
+      const processNames = parseInput(document.getElementById("processes").value);
+      const arrivalTimes = parseInput(document.getElementById("arrival").value).map(Number);
+      const burstTimes = parseInput(document.getElementById("burst").value).map(Number);
+
+      if (
+        processNames.length === 0 ||
+        processNames.length !== arrivalTimes.length ||
+        processNames.length !== burstTimes.length ||
+        arrivalTimes.some(isNaN) ||
+        burstTimes.some(isNaN)
+      ) {
+        alert("Please enter the same number of process names, arrival times, and burst times.");
+        return;
+      }
+
+      let processes = processNames.map((name, index) => ({
+        name: name,
+        arrival: arrivalTimes[index],
+        burst: burstTimes[index],
+        originalIndex: index
+      }));
+
+      processes.sort((a, b) => {
+        if (a.arrival === b.arrival) {
+          return a.originalIndex - b.originalIndex;
+        }
+        return a.arrival - b.arrival;
+      });
+
+      let currentTime = 0;
+      let totalWaiting = 0;
+      let totalTurnaround = 0;
+
+      processes.forEach(process => {
+        if (currentTime < process.arrival) {
+          currentTime = process.arrival;
+        }
+
+        process.start = currentTime;
+        process.completion = currentTime + process.burst;
+        process.turnaround = process.completion - process.arrival;
+        process.waiting = process.turnaround - process.burst;
+
+        currentTime = process.completion;
+        totalWaiting += process.waiting;
+        totalTurnaround += process.turnaround;
+      });
+
+      displayResults(processes, totalWaiting, totalTurnaround, currentTime);
+    }
+
+    function displayResults(processes, totalWaiting, totalTurnaround, totalTime) {
+      const outputSection = document.getElementById("outputSection");
+      const resultBody = document.getElementById("resultBody");
+      const gantt = document.getElementById("gantt");
+      const timeline = document.getElementById("timeline");
+
+      outputSection.style.display = "block";
+      resultBody.innerHTML = "";
+      gantt.innerHTML = "";
+      timeline.innerHTML = "";
+
+      const colors = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2", "#4f46e5"];
+
+      processes.forEach((process, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${process.name}</td>
+          <td>${process.arrival}</td>
+          <td>${process.burst}</td>
+          <td>${process.start}</td>
+          <td>${process.completion}</td>
+          <td>${process.turnaround}</td>
+          <td>${process.waiting}</td>
+        `;
+        resultBody.appendChild(row);
+
+        const block = document.createElement("div");
+        block.className = "block";
+        block.style.background = colors[index % colors.length];
+        block.style.flex = process.burst;
+        block.textContent = process.name;
+        gantt.appendChild(block);
+
+        const timePoint = document.createElement("div");
+        timePoint.className = "time-point";
+        timePoint.style.flex = process.burst;
+        timePoint.textContent = process.start;
+        timeline.appendChild(timePoint);
+      });
+
+      const lastPoint = document.createElement("div");
+      lastPoint.className = "time-point";
+      lastPoint.style.minWidth = "30px";
+      lastPoint.textContent = processes[processes.length - 1].completion;
+      timeline.appendChild(lastPoint);
+
+      document.getElementById("avgWaiting").textContent = (totalWaiting / processes.length).toFixed(2);
+      document.getElementById("avgTurnaround").textContent = (totalTurnaround / processes.length).toFixed(2);
+      document.getElementById("totalTime").textContent = totalTime;
+    }
+
+    function resetExample() {
+      document.getElementById("processes").value = "P1, P2, P3, P4";
+      document.getElementById("arrival").value = "0, 1, 2, 3";
+      document.getElementById("burst").value = "5, 3, 8, 6";
+      runFCFS();
+    }
+
+    window.onload = runFCFS;
+  </script>
+</body>
+</html>

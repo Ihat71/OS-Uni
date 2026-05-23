@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context Switching</title>
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<style>
+    h1{
+    text-align: center;
+}
+
+.container{
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    padding: auto;
+    justify-content: space-around;
+}
+
+.item{
+    width: 300px;
+    height: 500px;
+    background-color: rgb(160, 157, 218);
+    border: 3px;
+    border-style: outset;
+    border-radius: 1em;
+    border-color: rgb(0, 0, 0);
+    padding: 10px;
+   
+}
+
+h3{
+    text-align: center;
+}
+
+#vlp1{
+  border-left:  6px solid rgb(220, 206, 75);
+  height: 360px;
+  margin: 0 auto;
+  width: 0;
+
+}
+#vlp2{
+  border-left:  6px solid rgb(0, 207, 35);
+  height: 60px;
+  margin: 0 auto;
+  width: 0;  
+  margin-top: 120px;
+}
+h4{
+ text-align: center;
+ 
+}
+
+h5{
+    float: left;
+    padding-left: 80px;
+    padding-top: 100px;
+    
+}
+
+#idling22{
+    padding-top: 130px;
+}
+#mdiv{
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    
+
+}
+
+.cpudiv{
+    background-color: rgb(186, 186, 179);
+    border: 1px;
+    border-style: outset;
+    border-radius: 3px;
+}
+
+
+</style>
+<body>
+    <h1>Context Switching</h1>
+    <div class="mcon">
+    <div class="container">
+    <div class="item"><h3>Process 1</h3><h4>Executing</h4><h5>Idling</h5><div id="vlp1"></div><h4>Executing</h4></div>
+    <div class="item" id="mdiv"><h3>CPU</h3><div class="cpudiv">Intrrupt or System Call</div><div class="cpudiv">Save State into PCB1</div><div class="cpudiv">Load State From PCB2</div><div class="cpudiv">Intrrupt or System Call</div><div class="cpudiv">Save State into PCB2</div><div class="cpudiv">ReLoad State From PCB1</div></div>
+    <div class="item"><h3>Process 2</h3><h4>Idling</h4><h5>Executing</h5><div id="vlp2"></div><h4 id="idling22">Idling</h4></div>
+    </div>
+    </div>
+</body>
+</html>

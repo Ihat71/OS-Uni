@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process State Simulator</title>
+    <style>*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, sans-serif;
+}
+
+body{
+    background:#0f172a;
+    color:white;
+    padding:20px;
+}
+
+.container{
+    width:95%;
+    margin:auto;
+}
+
+h1{
+    text-align:left;
+    margin-bottom:30px;
+    color:#38bdf8;
+}
+
+.control-panel{
+    display:flex;
+    gap:15px;
+    flex-wrap:wrap;
+    background:#1e293b;
+    padding:20px;
+    border-radius:15px;
+    margin-bottom:30px;
+}
+
+.input-group{
+    display:flex;
+    flex-direction:column;
+}
+
+input, select{
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    margin-top:5px;
+}
+
+button{
+    padding:12px 18px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    background:#38bdf8;
+    color:white;
+    font-weight:bold;
+    transition:0.3s;
+}
+
+button:hover{
+    background:#0ea5e9;
+    transform:scale(1.05);
+}
+
+.states-container{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:20px;
+}
+
+.state-box{
+    background:#1e293b;
+    border-radius:15px;
+    padding:15px;
+    min-height:220px;
+    box-shadow:0 0 10px rgba(0,0,0,0.5);
+}
+
+.state-box h2{
+    text-align:center;
+    margin-bottom:15px;
+    color:#38bdf8;
+}
+
+.state-content{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.process{
+    background:#334155;
+    padding:10px;
+    border-radius:10px;
+    animation:fade 0.5s;
+}
+
+@keyframes fade{
+    from{
+        opacity:0;
+        transform:translateY(10px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+.cpu-section{
+    margin-top:40px;
+    background:#1e293b;
+    padding:20px;
+    border-radius:15px;
+}
+
+.cpu-cores{
+    display:flex;
+    gap:20px;
+    flex-wrap:wrap;
+    margin-top:20px;
+}
+
+.core{
+    background:#334155;
+    padding:20px;
+    border-radius:12px;
+    width:180px;
+    text-align:center;
+    border:2px solid #38bdf8;
+}
+
+.table-section{
+    margin-top:40px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+}
+
+table th, table td{
+    border:1px solid #475569;
+    padding:12px;
+    text-align:center;
+}
+
+table th{
+    background:#1e293b;
+}
+
+table td{
+    background:#334155;
+}
+
+.log-section{
+    margin-top:40px;
+    background:#1e293b;
+    padding:20px;
+    border-radius:15px;
+}
+
+#logBox{
+    max-height:200px;
+    overflow-y:auto;
+    margin-top:15px;
+}
+
+.log{
+    background:#334155;
+    padding:10px;
+    border-radius:8px;
+    margin-bottom:10px;
+}
+
+.notes-section{
+    margin-top:40px;
+}
+
+textarea{
+    width:100%;
+    height:200px;
+    margin-top:15px;
+    border:none;
+    border-radius:15px;
+    padding:20px;
+    resize:none;
+    background:#1e293b;
+    color:white;
+    font-size:16px;
+}
+.notes-content{
+    background:#1e293b;
+    padding:25px;
+    border-radius:15px;
+    line-height:1.8;
+    margin-top:15px;
+    box-shadow:0 0 10px rgba(0,0,0,0.4);
+}
+
+.notes-content h3{
+    color:#38bdf8;
+    margin-top:20px;
+    margin-bottom:10px;
+}
+
+.notes-content p{
+    color:#e2e8f0;
+}
+
+.section-divider{
+    border:none;
+    height:3px;
+    background:#38bdf8;
+    margin:40px 0;
+    border-radius:20px;
+    opacity:0.7;
+}
+
+.notes-content{
+    background:#1e293b;
+    padding:35px;
+    border-radius:20px;
+    line-height:2;
+    margin-top:20px;
+    box-shadow:0 0 15px rgba(0,0,0,0.5);
+}
+
+.notes-content h3{
+    color:#38bdf8;
+    margin-top:35px;
+    margin-bottom:15px;
+    font-size:24px;
+}
+
+.notes-content p{
+    color:#e2e8f0;
+    margin-bottom:20px;
+}
+
+.notes-content ul{
+    margin-left:30px;
+    margin-bottom:25px;
+}
+
+.notes-content li{
+    margin-bottom:12px;
+    color:#cbd5e1;
+}</style>
+</head>
+<body>
+
+<div class="container">
+
+    <h1>Process State Simulator</h1>
+
+    <!-- Controls -->
+    <div class="control-panel">
+
+        <div class="input-group">
+            <label>Process Name</label>
+            <input type="text" id="processName" placeholder="P1">
+        </div>
+
+        <div class="input-group">
+            <label>Burst Time</label>
+            <input type="number" id="burstTime" placeholder="0">
+        </div>
+
+        <div class="input-group">
+            <label>CPU Mode</label>
+            <select id="cpuMode">
+                <option value="1">Single Core</option>
+                <option value="2">Dual Core</option>
+                <option value="4">Quad Core</option>
+            </select>
+        </div>
+
+        <button onclick="createProcess()">Create Process</button>
+        <button onclick="startSimulation()">Start Simulation</button>
+        <button onclick="resetSimulation()">Reset</button>
+
+    </div>
+
+    <!-- Process States -->
+    <div class="states-container">
+
+        <div class="state-box">
+            <h2>NEW</h2>
+            <div id="newState" class="state-content"></div>
+        </div>
+
+        <div class="state-box">
+            <h2>READY</h2>
+            <div id="readyState" class="state-content"></div>
+        </div>
+
+        <div class="state-box">
+            <h2>RUNNING</h2>
+            <div id="runningState" class="state-content"></div>
+        </div>
+
+        <div class="state-box">
+            <h2>WAITING</h2>
+            <div id="waitingState" class="state-content"></div>
+        </div>
+
+        <div class="state-box">
+            <h2>TERMINATED</h2>
+            <div id="terminatedState" class="state-content"></div>
+        </div>
+
+    </div>
+
+    <!-- CPU Visualization -->
+    <div class="cpu-section">
+        <h2>CPU Cores</h2>
+        <div id="cpuCores" class="cpu-cores"></div>
+    </div>
+
+    <!-- Process Table -->
+    <div class="table-section">
+        <h2>Process Calculations</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Process</th>
+                    <th>Burst Time</th>
+                    <th>Remaining Time</th>
+                    <th>State</th>
+                </tr>
+            </thead>
+
+            <tbody id="processTable"></tbody>
+        </table>
+    </div>
+
+    <!-- Simulation Log -->
+    <div class="log-section">
+        <h2>Simulation Log</h2>
+        <div id="logBox"></div>
+    </div>
+
+<!-- Explanation Section -->
+<div class="notes-section">
+
+    <h2>Process State Explanation</h2>
+
+    <div class="notes-content">
+
+        <h3>New State</h3>
+        <p>
+            The New state is the birth stage of a process. When you initiate a program, the operating system's long-term scheduler picks it up and begins allocating the necessary primary memory (RAM) and resources it needs to run.<br> At this point, the process control block (PCB)—which tracks the process's ID, priority, and register data—is created. Crucially, the process is not yet ready to execute; it is simply being structured and loaded into memory from secondary storage.
+        </p>
+
+        <h3>Ready State</h3>
+        <p>
+           Once the operating system finishes setting up the process, it moves into the Ready state. Here, the process is fully loaded into main memory, has all its required resources, and is actively waiting for its turn to use the CPU.<br> Processes in this state sit in a "ready queue." The short-term scheduler (or CPU dispatcher) constantly monitors this queue, picking the next process to hand over to the processor based on scheduling algorithms like Round-Robin or First-Come-First-Served.
+        </p>
+
+        <h3>Running State</h3>
+        <p>
+           The Running state is where the actual work happens. When the CPU scheduler selects a process from the ready queue, it enters this state and its instructions begin executing on the processor core.<br> A process can only stay here until one of three things happens: it finishes its task, it gets interrupted by the OS because its time slice (quantum) ran out, or it requests an external resource (like reading a file) that forces it to pause.
+        </p>
+
+        <h3>Waiting State</h3>
+        <p>
+            Also known as the Blocked state, a process enters Waiting if it cannot continue running until a specific event occurs. This usually happens when the process requests an Input/Output (I/O) operation—like waiting for a user keystroke, fetching data from a hard drive, or downloading a file over the network.<br> To prevent the CPU from sitting idle, the OS moves this blocked process out of the processor and into a waiting queue, freeing up the CPU to run other processes. Once the event finishes, the process goes back to the Ready state, not directly back to Running.
+        </p>
+
+        <h3>Terminated State</h3>
+        <p>
+       The Terminated state is the final resting place of a process. A process arrives here either because it successfully finished executing all its code or because it was forcefully killed by the OS due to an error (like a segmentation fault or running out of memory).<br> In this stage, the operating system performs cleanup: it reclaims the RAM, closes any open files, deletes the Process Control Block (PCB), and frees up all resources back to the system pool.
+        </p>
+
+        <hr class="section-divider">
+
+
+        <h3>EXPLANATION</h3>
+
+<p>
+    This simulator demonstrates how operating systems manage processes
+    using different process states and CPU scheduling techniques.
+</p>
+
+<h3>STEP 1 — CREATE A PROCESS</h3>
+
+<p>
+    The user first enters a process name and burst time.
+</p>
+
+<ul>
+    <li>
+        Process Name:
+        Identifies the process such as P1, P2, Chrome, or Game.
+    </li>
+
+    <li>
+        Burst Time:
+        Represents the total CPU execution time required by the process.
+    </li>
+</ul>
+
+<p>
+    When the "Create Process" button is pressed,
+     a new process object being placed inside the NEW state.
+</p>
+
+<h3>STEP 2 — PROCESS MOVES TO READY STATE</h3>
+
+<p>
+    After initialization, the process automatically moves
+    from NEW state to READY state.
+</p>
+
+<p>
+    READY state represents processes waiting for CPU allocation.
+    The process cannot execute immediately if CPU cores are busy.
+</p>
+
+<h3>STEP 3 — SELECT CPU MODE</h3>
+
+<p>
+    The CPU Mode dropdown allows the user to choose
+    the number of CPU cores.
+</p>
+
+<ul>
+    <li>Single Core = 1 running process at a time</li>
+    <li>Dual Core = 2 running processes simultaneously</li>
+    <li>Quad Core = 4 running processes simultaneously</li>
+</ul>
+
+<p>
+    Increasing CPU cores improves multitasking and allows
+    multiple processes to execute together.
+</p>
+
+<h3>STEP 4 — START SIMULATION</h3>
+
+<p>
+    When the "Start Simulation" button is pressed,
+    the CPU scheduler starts assigning READY processes
+    to available CPU cores.
+</p>
+
+<p>
+    The scheduler continuously checks:
+</p>
+
+<ul>
+    <li>Available CPU cores</li>
+    <li>Processes inside READY queue</li>
+    <li>Remaining burst times</li>
+    <li>Waiting processes</li>
+</ul>
+
+<h3>STEP 5 — RUNNING STATE</h3>
+
+<p>
+    Processes assigned to CPU cores enter RUNNING state.
+</p>
+
+<p>
+    During execution:
+</p>
+
+<ul>
+    <li>Remaining time decreases every second</li>
+    <li>The process executes CPU instructions</li>
+    <li>The process continues until completion</li>
+</ul>
+
+<p>
+    The RUNNING section visually displays processes
+    currently being executed by the CPU.
+</p>
+
+<h3>STEP 6 — WAITING STATE</h3>
+
+<p>
+    Some processes randomly move into WAITING state
+    to simulate I/O operations.<br>
+    (Simulator automaticly acts like its having I/O operation and takes the process to waiting state.)
+</p>
+
+<p>
+    Examples of I/O operations:
+</p>
+
+<ul>
+    <li>Disk access</li>
+    <li>Keyboard input</li>
+    <li>Internet communication</li>
+    <li>File loading</li>
+</ul>
+
+<p>
+    After waiting finishes, the process returns
+    back to READY queue.
+</p>
+
+<h3>STEP 7 — TERMINATED STATE</h3>
+
+<p>
+    When remaining burst time reaches zero,
+    the process completes execution and enters
+    TERMINATED state.
+</p>
+
+<p>
+    This means the operating system removes the process
+    from CPU execution.
+</p>
+
+<h3>PROCESS CALCULATION TABLE</h3>
+
+<p>
+    The calculation table tracks process information in real time.
+</p>
+
+<ul>
+    <li>Process Name</li>
+    <li>Burst Time</li>
+    <li>Remaining Time</li>
+    <li>Current Process State</li>
+</ul>
+
+<p>
+    The table updates dynamically during execution.
+</p>
+
+<h3>SIMULATION LOG SECTION</h3>
+
+<p>
+    The simulation log records every process event and transition.
+</p>
+
+<p>
+    Example logs:
+</p>
+
+<ul>
+    <li>P1 entered READY queue</li>
+    <li>P1 assigned to CPU Core 1</li>
+    <li>P1 moved to WAITING state</li>
+    <li>P1 returned to READY queue</li>
+    <li>P1 terminated successfully</li>
+</ul>
+
+<h3>RESET BUTTON</h3>
+
+<p>
+    The Reset button clears:
+</p>
+
+<ul>
+    <li>All processes</li>
+    <li>CPU core assignments</li>
+    <li>Logs</li>
+    <li>Tables</li>
+    <li>Process states</li>
+</ul>
+
+<p>
+    This allows the simulation to restart from the beginning.
+</p>
+
+    </div>
+
+</div>
+
+</div>
+
+<script >let processes = [];
+let processCounter = 1;
+let simulationRunning = false;
+
+function createProcess(){
+
+
+    let name = document.getElementById("processName").value;
+    let burst = parseInt(document.getElementById("burstTime").value);
+
+    if(name === ""){
+        name = "P" + processCounter;
+    }
+
+    if(isNaN(burst) || burst <= 0){
+        alert("Enter valid burst time");
+        return;
+    }
+
+    let process = {
+        id: processCounter,
+        name: name,
+        burstTime: burst,
+        remainingTime: burst,
+        state: "NEW"
+    };
+
+    processes.push(process);
+
+    addLog(`${name} created and entered NEW state`);
+
+    processCounter++;
+
+    updateUI();
+
+    setTimeout(() => {
+        process.state = "READY";
+        addLog(`${name} moved to READY queue`);
+        updateUI();
+    }, 1000);
+
+    
+}
+
+function startSimulation(){
+
+    if(simulationRunning) return;
+
+    simulationRunning = true;
+
+    let coreCount = parseInt(document.getElementById("cpuMode").value);
+
+    createCores(coreCount);
+
+    let interval = setInterval(() => {
+
+        // Get READY processes
+        let readyProcesses = processes.filter(
+            p => p.state === "READY"
+        );
+
+        // Assign processes to free cores
+        for(let i = 0; i < coreCount; i++){
+
+            let runningProcess = processes.find(
+                p => p.state === "RUNNING" + i
+            );
+
+            if(!runningProcess && readyProcesses.length > 0){
+
+                let process = readyProcesses.shift();
+
+                process.state = "RUNNING" + i;
+
+                addLog(
+                    process.name +
+                    " assigned to CPU Core " +
+                    (i + 1)
+                );
+            }
+        }
+
+        // Execute RUNNING processes
+        processes.forEach(process => {
+
+            if(process.state.startsWith("RUNNING")){
+
+                process.remainingTime--;
+
+                addLog(
+                    process.name +
+                    " executing... Remaining Time: " +
+                    process.remainingTime
+                );
+
+                // Process finished
+                if(process.remainingTime <= 0){
+
+                    process.state = "TERMINATED";
+
+                    addLog(
+                        process.name +
+                        " moved to TERMINATED state"
+                    );
+                }
+
+                // Random waiting state
+                else if(Math.random() < 0.25){
+
+                    process.state = "WAITING";
+
+                    addLog(
+                        process.name +
+                        " moved to WAITING state"
+                    );
+
+                    setTimeout(() => {
+
+                        process.state = "READY";
+
+                        addLog(
+                            process.name +
+                            " returned to READY queue"
+                        );
+
+                        updateUI();
+
+                    }, 3000);
+                }
+            }
+        });
+
+        updateUI();
+
+        // Stop simulation when all finished
+        let completed = processes.every(
+            p => p.state === "TERMINATED"
+        );
+
+        if(completed && processes.length > 0){
+
+            clearInterval(interval);
+
+            simulationRunning = false;
+
+            addLog("All processes completed.");
+        }
+
+    }, 1000);
+}
+
+function updateUI(){
+
+    clearStates();
+
+    processes.forEach(process => {
+
+        let element = document.createElement("div");
+
+        element.className = "process";
+
+        element.innerHTML = `
+            <strong>${process.name}</strong><br>
+            Burst: ${process.burstTime}<br>
+            Remaining: ${process.remainingTime}
+        `;
+
+        if(process.state === "NEW"){
+            document.getElementById("newState").appendChild(element);
+        }
+
+        else if(process.state === "READY"){
+            document.getElementById("readyState").appendChild(element);
+        }
+
+        else if(process.state.startsWith("RUNNING")){
+            document.getElementById("runningState").appendChild(element);
+        }
+
+        else if(process.state === "WAITING"){
+            document.getElementById("waitingState").appendChild(element);
+        }
+
+        else if(process.state === "TERMINATED"){
+            document.getElementById("terminatedState").appendChild(element);
+        }
+    });
+
+    updateTable();
+}
+
+function clearStates(){
+
+    document.getElementById("newState").innerHTML = "";
+    document.getElementById("readyState").innerHTML = "";
+    document.getElementById("runningState").innerHTML = "";
+    document.getElementById("waitingState").innerHTML = "";
+    document.getElementById("terminatedState").innerHTML = "";
+}
+
+function updateTable(){
+
+    let table = document.getElementById("processTable");
+
+    table.innerHTML = "";
+
+    processes.forEach(process => {
+
+        table.innerHTML += `
+            <tr>
+                <td>${process.name}</td>
+                <td>${process.burstTime}</td>
+                <td>${process.remainingTime}</td>
+                <td>${process.state}</td>
+            </tr>
+        `;
+    });
+}
+
+function addLog(message){
+
+    let logBox = document.getElementById("logBox");
+
+    let log = document.createElement("div");
+
+    log.className = "log";
+
+    log.innerText = message;
+
+    logBox.prepend(log);
+}
+
+function createCores(count){
+
+    let cpu = document.getElementById("cpuCores");
+
+    cpu.innerHTML = "";
+
+    for(let i = 0; i < count; i++){
+
+        cpu.innerHTML += `
+            <div class="core">
+                <h3>CPU Core ${i+1}</h3>
+                <p>Executing Processes</p>
+            </div>
+        `;
+    }
+}
+
+function resetSimulation(){
+
+    processes = [];
+    processCounter = 1;
+
+    document.getElementById("cpuCores").innerHTML = "";
+    document.getElementById("processTable").innerHTML = "";
+    document.getElementById("logBox").innerHTML = "";
+
+    clearStates();
+
+    simulationRunning = false;
+} </script>
+</body>
+</html>

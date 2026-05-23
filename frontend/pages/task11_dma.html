@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Direct Memory Access (DMA) - Mitan Nimat Esa</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f0fdf4, #f8fafc);
+      color: #1e293b;
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 25px;
+      border-radius: 16px;
+      background: #166534;
+      color: white;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+    }
+
+    section {
+      margin-bottom: 30px;
+      padding: 22px;
+      border-radius: 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      color: #166534;
+    }
+
+    h3 {
+      margin-top: 15px;
+      margin-bottom: 8px;
+      color: #334155;
+    }
+
+    ul, ol {
+      margin-left: 22px;
+      margin-top: 8px;
+    }
+
+    .diagram {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+      margin-top: 20px;
+      align-items: center;
+    }
+
+    .box {
+      background: white;
+      border: 2px solid #86efac;
+      border-radius: 16px;
+      padding: 22px;
+      text-align: center;
+      min-height: 130px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .box h3 {
+      color: #166534;
+      margin: 0 0 10px;
+    }
+
+    .arrow {
+      text-align: center;
+      font-size: 2rem;
+      color: #16a34a;
+      font-weight: bold;
+      margin: 8px 0;
+    }
+
+    .transfer-area {
+      margin-top: 20px;
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      border: 1px solid #dcfce7;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 35px;
+      background: #e2e8f0;
+      border-radius: 30px;
+      overflow: hidden;
+      margin-top: 15px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #16a34a;
+      color: white;
+      text-align: center;
+      line-height: 35px;
+      font-weight: bold;
+      transition: width 0.4s ease;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 10px;
+      background: #16a34a;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #15803d;
+      transform: translateY(-1px);
+    }
+
+    .secondary-btn {
+      background: #475569;
+      margin-left: 8px;
+    }
+
+    .secondary-btn:hover {
+      background: #334155;
+    }
+
+    .status {
+      margin-top: 15px;
+      padding: 14px;
+      background: #dcfce7;
+      border-left: 5px solid #16a34a;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-top: 15px;
+    }
+
+    .card {
+      background: white;
+      padding: 18px;
+      border-radius: 12px;
+      border-left: 6px solid #16a34a;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    th {
+      background: #166534;
+      color: white;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 25px;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 800px) {
+      .diagram {
+        grid-template-columns: 1fr;
+      }
+
+      header h1 {
+        font-size: 1.6rem;
+      }
+
+      .container {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Direct Memory Access (DMA)</h1>
+      <p>Operating Systems Interactive Web Portfolio</p>
+      <p><strong>Student:</strong> Mitan Nimat Esa | <strong>ID:</strong> 01-23-00492 | <strong>Topic:</strong> 11</p>
+    </header>
+
+    <section>
+      <h2>What is Direct Memory Access?</h2>
+      <p>
+        Direct Memory Access, or <strong>DMA</strong>, is a method that allows an input/output device to transfer data
+        directly to or from main memory without making the CPU move every single piece of data.
+      </p>
+      <p>
+        Without DMA, the CPU has to control the whole transfer process. With DMA, the CPU only starts the transfer,
+        then the DMA controller handles the data movement. This makes the system faster and allows the CPU to do other work.
+      </p>
+
+      <h3>Simple example</h3>
+      <p>
+        Imagine copying a large file from a disk to memory. Without DMA, the CPU carries the data step by step.
+        With DMA, the CPU gives the job to the DMA controller, and the controller moves the data directly.
+      </p>
+    </section>
+
+    <section>
+      <h2>How DMA Works</h2>
+      <ol>
+        <li>The CPU tells the DMA controller what data should be transferred.</li>
+        <li>The CPU gives the DMA controller the memory address, device information, and amount of data.</li>
+        <li>The DMA controller transfers the data between the device and memory.</li>
+        <li>When the transfer is complete, the DMA controller interrupts the CPU.</li>
+        <li>The CPU continues with the result after being notified.</li>
+      </ol>
+
+      <div class="diagram">
+        <div class="box">
+          <h3>CPU</h3>
+          <p>Starts the transfer and continues other work.</p>
+        </div>
+        <div class="box">
+          <h3>DMA Controller</h3>
+          <p>Controls the data transfer directly.</p>
+        </div>
+        <div class="box">
+          <h3>Main Memory / I/O Device</h3>
+          <p>Data moves between memory and the device.</p>
+        </div>
+      </div>
+
+      <div class="arrow">CPU gives control → DMA transfers data → CPU gets interrupt</div>
+    </section>
+
+    <section>
+      <h2>Interactive DMA Transfer Demo</h2>
+      <p>
+        Click the button to simulate how DMA transfers data while the CPU is free to continue other tasks.
+      </p>
+
+      <button onclick="startDMA()">Start DMA Transfer</button>
+      <button class="secondary-btn" onclick="resetDMA()">Reset</button>
+
+      <div class="transfer-area">
+        <h3>Transfer Progress</h3>
+        <div class="progress-container">
+          <div id="progressBar" class="progress-bar">0%</div>
+        </div>
+        <div id="status" class="status">Status: Ready to start DMA transfer.</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>CPU Transfer vs DMA Transfer</h2>
+      <div class="comparison">
+        <div class="card">
+          <h3>Without DMA</h3>
+          <p>The CPU is busy moving data between the device and memory. This wastes CPU time and slows down the system.</p>
+        </div>
+        <div class="card">
+          <h3>With DMA</h3>
+          <p>The DMA controller moves the data directly. The CPU is free to work on other tasks until the transfer is complete.</p>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Without DMA</th>
+            <th>With DMA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CPU Involvement</td>
+            <td>High</td>
+            <td>Low</td>
+          </tr>
+          <tr>
+            <td>Speed</td>
+            <td>Slower for large data</td>
+            <td>Faster for large data</td>
+          </tr>
+          <tr>
+            <td>Efficiency</td>
+            <td>Less efficient</td>
+            <td>More efficient</td>
+          </tr>
+          <tr>
+            <td>Best Use</td>
+            <td>Small/simple transfers</td>
+            <td>Large data transfers</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Advantages and Disadvantages</h2>
+
+      <h3>Advantages</h3>
+      <ul>
+        <li>Reduces CPU workload.</li>
+        <li>Improves system performance.</li>
+        <li>Useful for large data transfers.</li>
+        <li>Allows CPU and I/O operations to work more efficiently.</li>
+      </ul>
+
+      <h3>Disadvantages</h3>
+      <ul>
+        <li>Needs extra hardware called a DMA controller.</li>
+        <li>Can be more complex to manage.</li>
+        <li>DMA and CPU may compete for memory access.</li>
+      </ul>
+    </section>
+
+    <footer>
+      Created for Operating Systems Interactive Web Portfolio Assignment
+    </footer>
+  </div>
+
+  <script>
+    let interval;
+    let progress = 0;
+
+    function startDMA() {
+      clearInterval(interval);
+      progress = 0;
+
+      const progressBar = document.getElementById("progressBar");
+      const status = document.getElementById("status");
+
+      progressBar.style.width = "0%";
+      progressBar.textContent = "0%";
+      status.textContent = "Status: CPU has started the DMA transfer. DMA controller is now moving data.";
+
+      interval = setInterval(() => {
+        progress += 10;
+        progressBar.style.width = progress + "%";
+        progressBar.textContent = progress + "%";
+
+        if (progress === 30) {
+          status.textContent = "Status: DMA controller is transferring data directly between device and memory. CPU is free.";
+        }
+
+        if (progress === 70) {
+          status.textContent = "Status: Transfer is almost complete. CPU is still not doing the data movement.";
+        }
+
+        if (progress >= 100) {
+          clearInterval(interval);
+          status.textContent = "Status: DMA transfer complete. DMA controller sends an interrupt to the CPU.";
+        }
+      }, 500);
+    }
+
+    function resetDMA() {
+      clearInterval(interval);
+      progress = 0;
+
+      const progressBar = document.getElementById("progressBar");
+      const status = document.getElementById("status");
+
+      progressBar.style.width = "0%";
+      progressBar.textContent = "0%";
+      status.textContent = "Status: Ready to start DMA transfer.";
+    }
+  </script>
+</body>
+</html>

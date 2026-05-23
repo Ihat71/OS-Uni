@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Linker and Loader - Adil Rawand Adil</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #fff7ed, #f8fafc);
+      color: #1e293b;
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 25px;
+      border-radius: 16px;
+      background: #c2410c;
+      color: white;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+    }
+
+    section {
+      margin-bottom: 30px;
+      padding: 22px;
+      border-radius: 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      color: #c2410c;
+    }
+
+    h3 {
+      margin-top: 15px;
+      margin-bottom: 8px;
+      color: #334155;
+    }
+
+    ul, ol {
+      margin-left: 22px;
+      margin-top: 8px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      align-items: center;
+      margin-top: 22px;
+    }
+
+    .step {
+      background: white;
+      border: 2px solid #fed7aa;
+      border-radius: 14px;
+      padding: 18px;
+      text-align: center;
+      min-height: 115px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      transition: 0.3s;
+    }
+
+    .step.active {
+      background: #ffedd5;
+      border-color: #f97316;
+      transform: translateY(-4px);
+    }
+
+    .step h3 {
+      color: #c2410c;
+      margin: 0 0 8px;
+    }
+
+    .arrow {
+      text-align: center;
+      font-size: 1.8rem;
+      color: #f97316;
+      font-weight: bold;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 10px;
+      background: #ea580c;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #c2410c;
+      transform: translateY(-1px);
+    }
+
+    .secondary-btn {
+      background: #475569;
+      margin-left: 8px;
+    }
+
+    .secondary-btn:hover {
+      background: #334155;
+    }
+
+    .status {
+      margin-top: 16px;
+      padding: 15px;
+      background: #ffedd5;
+      border-left: 5px solid #ea580c;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-top: 15px;
+    }
+
+    .card {
+      background: white;
+      padding: 18px;
+      border-radius: 12px;
+      border-left: 6px solid #ea580c;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    th {
+      background: #c2410c;
+      color: white;
+    }
+
+    .code-box {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 18px;
+      border-radius: 12px;
+      margin-top: 14px;
+      overflow-x: auto;
+      font-family: Consolas, monospace;
+      font-size: 0.95rem;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 25px;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 900px) {
+      .flow {
+        grid-template-columns: 1fr;
+      }
+
+      .arrow {
+        transform: rotate(90deg);
+      }
+
+      header h1 {
+        font-size: 1.6rem;
+      }
+
+      .container {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Linker and Loader</h1>
+      <p>Operating Systems Interactive Web Portfolio</p>
+      <p><strong>Student:</strong> Adil Rawand Adil | <strong>ID:</strong> 01-23-00595 | <strong>Topic:</strong> 12</p>
+    </header>
+
+    <section>
+      <h2>What are the Linker and Loader?</h2>
+      <p>
+        In an operating system, a program does not run immediately after we write the source code.
+        It must pass through several stages before it becomes a running process. Two important parts
+        of this process are the <strong>linker</strong> and the <strong>loader</strong>.
+      </p>
+
+      <h3>Linker</h3>
+      <p>
+        The linker combines object files and required library files into one executable program.
+        It connects functions, variables, and addresses that may be stored in different files.
+      </p>
+
+      <h3>Loader</h3>
+      <p>
+        The loader loads the executable program into main memory so the CPU can start executing it.
+        It prepares the program as a process inside memory.
+      </p>
+    </section>
+
+    <section>
+      <h2>Program Execution Flow</h2>
+      <p>
+        This diagram shows how a program moves from source code to a running process.
+      </p>
+
+      <div class="flow">
+        <div class="step" id="step0">
+          <h3>1. Source Code</h3>
+          <p>Program written by the programmer.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="step" id="step1">
+          <h3>2. Compiler</h3>
+          <p>Converts source code into object code.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="step" id="step2">
+          <h3>3. Linker</h3>
+          <p>Combines object files and libraries.</p>
+        </div>
+        <div class="step" id="step3">
+          <h3>4. Loader</h3>
+          <p>Places executable file into memory.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="step" id="step4">
+          <h3>5. Running Process</h3>
+          <p>The program is now executing.</p>
+        </div>
+      </div>
+
+      <button onclick="startDemo()">Start Demo</button>
+      <button class="secondary-btn" onclick="resetDemo()">Reset</button>
+
+      <div id="status" class="status">Status: Ready to begin the program execution process.</div>
+    </section>
+
+    <section>
+      <h2>Simple Code Example</h2>
+      <p>
+        Suppose a program uses the <strong>printf()</strong> function. The source code has the function call,
+        but the actual function exists in a library. The linker connects the program to that library function.
+      </p>
+
+      <div class="code-box">
+#include &lt;stdio.h&gt;<br><br>
+int main() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf("Hello, Operating Systems!");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br>
+}
+      </div>
+
+      <p style="margin-top: 12px;">
+        After linking, the executable is ready. Then the loader puts it into memory so it can run.
+      </p>
+    </section>
+
+    <section>
+      <h2>Difference Between Linker and Loader</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Point</th>
+            <th>Linker</th>
+            <th>Loader</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Main Job</td>
+            <td>Creates executable file</td>
+            <td>Loads executable into memory</td>
+          </tr>
+          <tr>
+            <td>Input</td>
+            <td>Object files and libraries</td>
+            <td>Executable file</td>
+          </tr>
+          <tr>
+            <td>Output</td>
+            <td>Executable program</td>
+            <td>Running process in memory</td>
+          </tr>
+          <tr>
+            <td>When Used</td>
+            <td>Before execution</td>
+            <td>At execution time</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Types of Linking and Loading</h2>
+
+      <div class="comparison">
+        <div class="card">
+          <h3>Static Linking</h3>
+          <p>
+            Library code is included inside the executable file before the program runs.
+            The executable may become larger, but it can run without depending on external library files.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Dynamic Linking</h3>
+          <p>
+            Library code is linked while the program is running. This saves memory because many programs
+            can share the same library.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Absolute Loading</h3>
+          <p>
+            The program is loaded into a fixed memory location.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Relocatable Loading</h3>
+          <p>
+            The program can be loaded into different memory locations. This gives the operating system more flexibility.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Why Linker and Loader are Important</h2>
+      <ul>
+        <li>They help convert a program into a form that can actually run.</li>
+        <li>The linker connects different parts of a program together.</li>
+        <li>The loader places the executable program into memory.</li>
+        <li>They make program execution possible inside the operating system.</li>
+      </ul>
+    </section>
+
+    <footer>
+      Created for Operating Systems Interactive Web Portfolio Assignment
+    </footer>
+  </div>
+
+  <script>
+    let currentStep = 0;
+    let interval;
+
+    const messages = [
+      "Step 1: The programmer writes source code.",
+      "Step 2: The compiler converts source code into object code.",
+      "Step 3: The linker combines object files and libraries into an executable file.",
+      "Step 4: The loader loads the executable file into main memory.",
+      "Step 5: The program becomes a running process."
+    ];
+
+    function startDemo() {
+      resetDemo();
+      interval = setInterval(() => {
+        if (currentStep < 5) {
+          document.getElementById("step" + currentStep).classList.add("active");
+          document.getElementById("status").textContent = messages[currentStep];
+          currentStep++;
+        } else {
+          clearInterval(interval);
+          document.getElementById("status").textContent = "Complete: The program is now loaded in memory and running.";
+        }
+      }, 900);
+    }
+
+    function resetDemo() {
+      clearInterval(interval);
+      currentStep = 0;
+
+      for (let i = 0; i < 5; i++) {
+        document.getElementById("step" + i).classList.remove("active");
+      }
+
+      document.getElementById("status").textContent = "Status: Ready to begin the program execution process.";
+    }
+  </script>
+</body>
+</html>

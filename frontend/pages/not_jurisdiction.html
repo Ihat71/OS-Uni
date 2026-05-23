@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Not Our Jurisdiction</title>
+
+<style>
+body{
+    margin:0;
+    height:100vh;
+    overflow:hidden;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+
+    background:linear-gradient(
+        135deg,
+        #101522,
+        #1c2333
+    );
+
+    color:white;
+    font-family:Arial,sans-serif;
+}
+
+.card{
+    text-align:center;
+    padding:40px;
+    border-radius:20px;
+
+    background:rgba(255,255,255,.08);
+
+    backdrop-filter:blur(12px);
+
+    transform:translateY(0px);
+
+    animation:float 3s infinite ease-in-out;
+
+    box-shadow:
+    0 0 25px rgba(255,255,255,.1);
+}
+
+@keyframes float{
+    0%{transform:translateY(0);}
+    50%{transform:translateY(-10px);}
+    100%{transform:translateY(0);}
+}
+
+.warning{
+    font-size:70px;
+}
+
+h1{
+    margin:10px;
+}
+
+p{
+    opacity:.8;
+}
+
+button{
+
+    margin-top:20px;
+
+    padding:12px 25px;
+
+    border:none;
+    border-radius:12px;
+
+    cursor:pointer;
+
+    font-size:16px;
+
+    transition:.3s;
+}
+
+button:hover{
+
+    transform:scale(1.1);
+
+}
+
+.glow{
+    position:absolute;
+
+    width:300px;
+    height:300px;
+
+    border-radius:50%;
+
+    background:radial-gradient(
+    rgba(0,150,255,.3),
+    transparent);
+
+    pointer-events:none;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="glow"></div>
+
+<div class="card">
+
+<div class="warning">
+⚖️
+</div>
+
+<h1>Not Our Jurisdiction</h1>
+
+<p>
+You attempted to access a page we didn't make
+</p>
+
+<p>
+    Apologies! </br>
+    This concept was not specified to us so it was not implemented. 
+</p>
+
+<button onclick="window.location='/'">
+Return Home
+</button>
+
+</div>
+
+<script>
+
+const glow=document.querySelector(".glow");
+
+document.addEventListener("mousemove",(e)=>{
+
+glow.style.left=e.clientX-150+"px";
+
+glow.style.top=e.clientY-150+"px";
+
+});
+
+</script>
+
+</body>
+</html>

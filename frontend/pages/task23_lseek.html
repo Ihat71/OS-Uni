@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 23: lseek() System Call</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --byte-bg: #e0f2fe;
+            --pointer: #dc2626;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: var(--primary);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        code {
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #b91c1c;
+        }
+
+        .demo-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 2rem;
+            overflow-x: auto;
+            padding-bottom: 2rem;
+        }
+
+        .file-blocks {
+            display: flex;
+            position: relative;
+            margin-bottom: 1rem;
+            border-left: 2px solid #000;
+            border-right: 2px solid #000;
+        }
+
+        .byte {
+            width: 40px;
+            height: 40px;
+            background: var(--byte-bg);
+            border: 1px solid #bae6fd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .pointer-container {
+            position: relative;
+            width: 100%;
+            height: 40px;
+        }
+
+        .pointer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            color: var(--pointer);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: left 0.3s ease-in-out;
+            width: 40px;
+        }
+
+        .pointer-arrow {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .pointer-label {
+            font-size: 0.8rem;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        input, select, button {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .status {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 4px;
+            color: #166534;
+            font-weight: 500;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Task 23: The <code>lseek()</code> System Call</h1>
+        
+        <div class="card">
+            <h2>Concept Explanation</h2>
+            <p>In Operating Systems, every open file has an associated "file offset," which dictates the current byte position where the next <code>read()</code> or <code>write()</code> operation will occur. The <code>lseek()</code> system call allows a process to explicitly reposition this read/write file offset.</p>
+            
+            <h3>Syntax</h3>
+            <p><code>off_t lseek(int fd, off_t offset, int whence);</code></p>
+            
+            <h3>Parameters</h3>
+            <ul>
+                <li><strong>fd:</strong> The file descriptor of the open file.</li>
+                <li><strong>offset:</strong> The number of bytes to move the pointer. This can be positive or negative.</li>
+                <li><strong>whence:</strong> The reference point for the offset. It takes one of three constants:
+                    <ul>
+                        <li><code>SEEK_SET</code>: The offset is set to <em>offset</em> bytes from the very beginning of the file.</li>
+                        <li><code>SEEK_CUR</code>: The offset is set to its current location plus <em>offset</em> bytes.</li>
+                        <li><code>SEEK_END</code>: The offset is set to the size of the file plus <em>offset</em> bytes.</li>
+                    </ul>
+                </li>
+            </ul>
+            <p><em>Note:</em> Moving the pointer past the end of the file and writing data creates a "hole" (a sparse file) where unwritten bytes read as zeros.</p>
+        </div>
+
+        <div class="card">
+            <h2>Interactive <code>lseek()</code> Demonstration</h2>
+            <p>Use the controls below to simulate repositioning the file offset on a 10-byte file.</p>
+            
+            <div class="demo-area">
+                <div style="font-family: monospace; margin-bottom: 5px;">File Data (Size: 10 bytes)</div>
+                <div class="file-blocks">
+                    <div class="byte">S</div>
+                    <div class="byte">Y</div>
+                    <div class="byte">S</div>
+                    <div class="byte">T</div>
+                    <div class="byte">E</div>
+                    <div class="byte">M</div>
+                    <div class="byte">_</div>
+                    <div class="byte">O</div>
+                    <div class="byte">S</div>
+                    <div class="byte">!</div>
+                </div>
+                <div class="pointer-container">
+                    <div class="pointer" id="offset-pointer">
+                        <div class="pointer-arrow">▲</div>
+                        <div class="pointer-label" id="offset-label">Offset: 0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="offset-input">Offset (bytes):</label>
+                    <input type="number" id="offset-input" value="3" style="width: 100px;">
+                </div>
+                <div class="control-group">
+                    <label for="whence-select">Whence:</label>
+                    <select id="whence-select">
+                        <option value="SEEK_SET">SEEK_SET (Start)</option>
+                        <option value="SEEK_CUR">SEEK_CUR (Current)</option>
+                        <option value="SEEK_END">SEEK_END (End of File)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <button onclick="executeLseek()">Execute lseek()</button>
+                </div>
+            </div>
+
+            <div class="status" id="status-message">
+                System Initialized. Current Offset: 0.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentOffset = 0;
+        const fileSize = 10;
+        const byteWidth = 42; // 40px width + 2px borders
+
+        function executeLseek() {
+            const offsetValue = parseInt(document.getElementById('offset-input').value);
+            const whence = document.getElementById('whence-select').value;
+            const statusBox = document.getElementById('status-message');
+            
+            let newOffset = 0;
+
+            // Calculate new offset based on whence
+            if (whence === 'SEEK_SET') {
+                newOffset = offsetValue;
+            } else if (whence === 'SEEK_CUR') {
+                newOffset = currentOffset + offsetValue;
+            } else if (whence === 'SEEK_END') {
+                newOffset = fileSize + offsetValue;
+            }
+
+            // Error handling: offset cannot be negative
+            if (newOffset < 0) {
+                statusBox.style.color = '#991b1b';
+                statusBox.style.background = '#fef2f2';
+                statusBox.style.borderColor = '#fecaca';
+                statusBox.innerText = `Error: lseek() failed. Resulting offset (${newOffset}) cannot be less than 0.`;
+                return;
+            }
+
+            // Update state
+            currentOffset = newOffset;
+
+            // Move visual pointer
+            const pointer = document.getElementById('offset-pointer');
+            const pointerLabel = document.getElementById('offset-label');
+            
+            pointer.style.left = `${currentOffset * byteWidth}px`;
+            pointerLabel.innerText = `Offset: ${currentOffset}`;
+
+            // Update status text
+            statusBox.style.color = '#166534';
+            statusBox.style.background = '#f0fdf4';
+            statusBox.style.borderColor = '#bbf7d0';
+            
+            let extraMsg = currentOffset > fileSize ? " (File Hole created)" : "";
+            statusBox.innerText = `Success: lseek() executed. New file offset is ${currentOffset}${extraMsg}.`;
+        }
+    </script>
+</body>
+</html>

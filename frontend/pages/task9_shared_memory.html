@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPC Shared Memory Model</title>
+
+    <style>
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body{
+            background: linear-gradient(135deg,#0f172a,#1e293b);
+            color:white;
+            min-height:100vh;
+            padding:30px;
+        }
+
+        .container{
+            max-width:1200px;
+            margin:auto;
+        }
+
+        header{
+            text-align:center;
+            margin-bottom:40px;
+        }
+
+        header h1{
+            font-size:48px;
+            margin-bottom:10px;
+            color:#38bdf8;
+        }
+
+        header p{
+            font-size:20px;
+            color:#cbd5e1;
+        }
+
+        .section{
+            background:#1e293b;
+            padding:25px;
+            margin-bottom:30px;
+            border-radius:20px;
+            box-shadow:0 0 15px rgba(0,0,0,0.3);
+        }
+
+        .section h2{
+            margin-bottom:15px;
+            color:#facc15;
+        }
+
+        .section p,
+        .section li{
+            line-height:1.8;
+            color:#e2e8f0;
+        }
+
+        .diagram{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:20px;
+            margin-top:30px;
+            flex-wrap:wrap;
+        }
+
+        .box{
+            flex:1;
+            min-width:250px;
+            padding:20px;
+            border-radius:20px;
+            text-align:center;
+            transition:0.3s;
+        }
+
+        .processA{
+            background:#2563eb;
+        }
+
+        .sharedMemory{
+            background:#eab308;
+            color:black;
+            position:relative;
+        }
+
+        .processB{
+            background:#16a34a;
+        }
+
+        .arrow{
+            font-size:40px;
+            color:white;
+        }
+
+        input{
+            width:100%;
+            padding:12px;
+            margin-top:15px;
+            border:none;
+            border-radius:10px;
+            font-size:16px;
+        }
+
+        button{
+            margin-top:15px;
+            padding:12px 20px;
+            border:none;
+            border-radius:10px;
+            font-size:16px;
+            cursor:pointer;
+            transition:0.3s;
+            font-weight:bold;
+        }
+
+        button:hover{
+            transform:scale(1.05);
+        }
+
+        .writeBtn{
+            background:#0ea5e9;
+            color:white;
+        }
+
+        .readBtn{
+            background:#22c55e;
+            color:white;
+        }
+
+        .clearBtn{
+            background:#ef4444;
+            color:white;
+        }
+
+        .lockBtn{
+            background:#a855f7;
+            color:white;
+        }
+
+        .memory-display{
+            margin-top:20px;
+            background:white;
+            color:black;
+            padding:15px;
+            border-radius:10px;
+            min-height:60px;
+            font-size:18px;
+            font-weight:bold;
+        }
+
+        .status{
+            margin-top:15px;
+            font-size:18px;
+            font-weight:bold;
+        }
+
+        .advantages{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:20px;
+        }
+
+        .card{
+            background:#334155;
+            padding:20px;
+            border-radius:15px;
+        }
+
+        footer{
+            text-align:center;
+            margin-top:40px;
+            color:#94a3b8;
+        }
+
+        @media(max-width:768px){
+            .diagram{
+                flex-direction:column;
+            }
+
+            .advantages{
+                grid-template-columns:1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <header>
+        <h1>Interprocess Communication (IPC)</h1>
+        <p>Shared Memory Model - Interactive Operating Systems Demo</p>
+    </header>
+
+
+    <div class="section">
+        <h2>What is Shared Memory?</h2>
+
+        <p>
+            Shared Memory is a method of Interprocess Communication (IPC) where two or more
+            processes share the same memory region. Instead of sending messages back and forth,
+            processes directly read and write data in shared memory.
+        </p>
+
+        <br>
+
+        <p>
+            This communication method is very fast because data does not need to be copied multiple times.
+            However, synchronization is required to prevent conflicts when multiple processes access the same data.
+        </p>
+    </div>
+
+
+    <div class="section">
+        <h2>Visual Representation</h2>
+
+        <div class="diagram">
+
+            <div class="box processA">
+                <h3>Process A</h3>
+                <p>Writes Data</p>
+            </div>
+
+            <div class="arrow">➜</div>
+
+            <div class="box sharedMemory">
+                <h3>Shared Memory</h3>
+                <p>Common Memory Space</p>
+            </div>
+
+            <div class="arrow">➜</div>
+
+            <div class="box processB">
+                <h3>Process B</h3>
+                <p>Reads Data</p>
+            </div>
+
+        </div>
+    </div>
+
+
+    <div class="section">
+        <h2>Interactive Shared Memory Demo</h2>
+
+        <div class="diagram">
+
+            <div class="box processA">
+                <h3>Process A</h3>
+
+                <input type="text" id="inputData" placeholder="Enter data to write">
+
+                <button class="writeBtn" onclick="writeMemory()">
+                    Write to Shared Memory
+                </button>
+            </div>
+
+
+            <div class="box sharedMemory">
+                <h3>Shared Memory</h3>
+
+                <div class="memory-display" id="memoryBox">
+                    Empty Memory
+                </div>
+
+                <button class="clearBtn" onclick="clearMemory()">
+                    Clear Memory
+                </button>
+
+                <button class="lockBtn" onclick="toggleLock()">
+                    Toggle Lock
+                </button>
+
+                <div class="status" id="lockStatus">
+                    Lock Status: OFF
+                </div>
+            </div>
+
+
+            <div class="box processB">
+                <h3>Process B</h3>
+
+                <div class="memory-display" id="outputBox">
+                    Waiting to read...
+                </div>
+
+                <button class="readBtn" onclick="readMemory()">
+                    Read from Shared Memory
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+
+    <div class="section">
+        <h2>How the Demo Works</h2>
+
+        <ol>
+            <li>Process A writes information into shared memory.</li>
+            <li>The data becomes available in the shared memory region.</li>
+            <li>Process B reads the same data from memory.</li>
+            <li>The lock button simulates synchronization between processes.</li>
+        </ol>
+    </div>
+
+
+    <div class="section">
+        <h2>Advantages and Disadvantages</h2>
+
+        <div class="advantages">
+
+            <div class="card">
+                <h3>Advantages</h3>
+
+                <ul>
+                    <li>Very fast communication</li>
+                    <li>Efficient for large amounts of data</li>
+                    <li>Reduces CPU overhead</li>
+                    <li>Widely used in operating systems</li>
+                </ul>
+            </div>
+
+
+            <div class="card">
+                <h3>Disadvantages</h3>
+
+                <ul>
+                    <li>Requires synchronization</li>
+                    <li>Can cause race conditions</li>
+                    <li>Harder to manage safely</li>
+                    <li>Processes may overwrite data</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+
+    <footer>
+        <p>Operating Systems Interactive Portfolio Project</p>
+        <p>Topic 9: IPC - Shared Memory Model</p>
+    </footer>
+
+</div>
+
+
+<script>
+
+    let sharedMemory = "";
+    let lock = false;
+
+
+    function writeMemory(){
+
+        if(lock){
+            alert("Memory is locked! Cannot write.");
+            return;
+        }
+
+        const input = document.getElementById("inputData").value;
+
+        if(input.trim() === ""){
+            alert("Please enter some data.");
+            return;
+        }
+
+        sharedMemory = input;
+
+        document.getElementById("memoryBox").innerText = sharedMemory;
+
+        document.getElementById("inputData").value = "";
+    }
+
+
+    function readMemory(){
+
+        if(lock){
+            alert("Memory is locked! Cannot read.");
+            return;
+        }
+
+        if(sharedMemory === ""){
+            document.getElementById("outputBox").innerText = "Memory is empty";
+        }
+        else{
+            document.getElementById("outputBox").innerText = sharedMemory;
+        }
+    }
+
+
+    function clearMemory(){
+
+        sharedMemory = "";
+
+        document.getElementById("memoryBox").innerText = "Empty Memory";
+
+        document.getElementById("outputBox").innerText = "Waiting to read...";
+    }
+
+
+    function toggleLock(){
+
+        lock = !lock;
+
+        if(lock){
+            document.getElementById("lockStatus").innerText = "Lock Status: ON";
+        }
+        else{
+            document.getElementById("lockStatus").innerText = "Lock Status: OFF";
+        }
+    }
+
+</script>
+
+</body>
+</html>

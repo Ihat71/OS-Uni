@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Team</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      --ink: #1a1008;
+      --yellow: #FFE135;
+      --red: #E8312A;
+      --blue: #1B6CA8;
+      --teal: #00A896;
+      --outline: 3px solid var(--ink);
+      --outline-thick: 4px solid var(--ink);
+    }
+
+    body {
+      background-color: #f0e8d0;
+      background-image: radial-gradient(circle, #c8b99055 1px, transparent 1px);
+      background-size: 18px 18px;
+      font-family: 'Comic Neue', cursive;
+      color: var(--ink);
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    header {
+      position: relative;
+      background: var(--yellow);
+      border: var(--outline-thick);
+      border-radius: 6px;
+      box-shadow: 6px 6px 0 var(--ink);
+      padding: 44px 30px 34px;
+      text-align: center;
+      margin-bottom: 36px;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, #00000015 1px, transparent 1px);
+      background-size: 12px 12px;
+      pointer-events: none;
+    }
+    .header-bang {
+      position: absolute;
+      font-family: 'Bangers', cursive;
+      font-size: 1.05rem;
+      letter-spacing: 2px;
+      background: var(--red);
+      color: white;
+      border: 2.5px solid var(--ink);
+      padding: 4px 12px;
+      border-radius: 4px;
+      box-shadow: 3px 3px 0 var(--ink);
+      top: 14px; left: 20px;
+      transform: rotate(-3deg);
+    }
+    .header-badge {
+      position: absolute;
+      top: 12px; right: 20px;
+      background: var(--blue);
+      color: white;
+      font-family: 'Bangers', cursive;
+      font-size: 1rem;
+      letter-spacing: 1px;
+      padding: 4px 12px;
+      border: 2.5px solid var(--ink);
+      border-radius: 4px;
+      box-shadow: 3px 3px 0 var(--ink);
+      transform: rotate(2deg);
+    }
+    header h1 {
+      font-family: 'Bangers', cursive;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      letter-spacing: 3px;
+      line-height: 1.15;
+      color: var(--ink);
+      text-shadow: 3px 3px 0 #ffffff88;
+      position: relative; z-index: 1;
+    }
+    .speech-bubble {
+      display: inline-block;
+      background: white;
+      border: var(--outline);
+      border-radius: 20px;
+      padding: 8px 18px;
+      margin-top: 14px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      position: relative; z-index: 1;
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -14px; left: 50%;
+      transform: translateX(-50%);
+      border: 7px solid transparent;
+      border-top-color: var(--ink);
+    }
+    .speech-bubble::before {
+      content: '';
+      position: absolute;
+      bottom: -10px; left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: white;
+      z-index: 1;
+    }
+    .starburst {
+      position: absolute;
+      bottom: 18px; right: 28px;
+      width: 68px; height: 68px;
+      background: var(--red);
+      clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+      display: flex; align-items: center; justify-content: center;
+      border: 3px solid var(--ink);
+      animation: spin 8s linear infinite;
+    }
+    .starburst span {
+      font-family: 'Bangers', cursive;
+      font-size: 0.6rem;
+      letter-spacing: 1px;
+      color: white;
+      text-align: center;
+      line-height: 1.2;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Bangers', cursive;
+      letter-spacing: 1.5px;
+      font-size: 1rem;
+      padding: 9px 18px;
+      background: white;
+      color: var(--ink);
+      border: var(--outline-thick);
+      border-radius: 6px;
+      text-decoration: none;
+      box-shadow: 4px 4px 0 var(--ink);
+      margin-bottom: 28px;
+      transition: transform .12s, box-shadow .12s;
+    }
+    .back-link:hover {
+      transform: translate(-2px,-2px);
+      box-shadow: 6px 6px 0 var(--ink);
+    }
+
+    .panel-wrap {
+      background: white;
+      border: var(--outline-thick);
+      border-radius: 10px;
+      box-shadow: 6px 6px 0 var(--ink);
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+    .section-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 20px;
+    }
+    .section-header h2 {
+      font-family: 'Bangers', cursive;
+      font-size: 1.9rem; letter-spacing: 2px; line-height: 1;
+    }
+    .zap {
+      display: inline-block;
+      background: var(--yellow);
+      border: var(--outline);
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-family: 'Bangers', cursive;
+      font-size: 1rem; letter-spacing: 1px;
+      box-shadow: 3px 3px 0 var(--ink);
+      white-space: nowrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .member-card {
+      background: #FFFDF5;
+      border: var(--outline-thick);
+      border-radius: 8px;
+      padding: 20px 16px 16px;
+      box-shadow: 5px 5px 0 var(--ink);
+      text-align: center;
+      transition: transform .15s, box-shadow .15s;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .member-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: var(--card-top, var(--teal));
+    }
+    .member-card:hover {
+      transform: translate(-3px,-3px);
+      box-shadow: 8px 8px 0 var(--ink);
+    }
+    .card-teacher { --card-top: #E8312A; }
+    .card-claude  { --card-top: #9B59B6; }
+
+    /* ── AVATAR ── */
+    .avatar {
+      width: 72px; height: 72px;
+      border: var(--outline-thick);
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: 3px 3px 0 var(--ink);
+      flex-shrink: 0;
+    }
+    .avatar svg { width: 100%; height: 100%; display: block; }
+
+    .member-card h2 {
+      font-family: 'Bangers', cursive;
+      font-size: 1.15rem;
+      letter-spacing: 1px;
+      line-height: 1.2;
+    }
+    .role {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #555;
+      line-height: 1.4;
+      text-align: center;
+    }
+    .role-badge {
+      display: inline-block;
+      font-family: 'Bangers', cursive;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      padding: 3px 10px;
+      border: 2px solid var(--ink);
+      border-radius: 20px;
+      background: var(--yellow);
+      box-shadow: 2px 2px 0 var(--ink);
+      white-space: nowrap;
+    }
+
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      padding: 20px;
+      border: var(--outline);
+      border-radius: 8px;
+      background: white;
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+    footer p { font-weight: 700; font-size: 0.9rem; }
+    footer a { color: var(--blue); font-weight: 700; text-decoration: none; border-bottom: 2px solid var(--blue); }
+    footer a:hover { color: var(--red); border-color: var(--red); }
+
+    @media(max-width: 700px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media(max-width: 480px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- reusable SVG avatar templates via inline defs — referenced with <use> -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+
+    <!-- MALE: grey bg, circle head, broad shoulder silhouette -->
+    <symbol id="pfp-male" viewBox="0 0 80 80">
+      <rect width="80" height="80" fill="#DBDDE0"/>
+      <!-- head -->
+      <circle cx="40" cy="29" r="14" fill="#9EA3A8"/>
+      <!-- shoulders / body -->
+      <ellipse cx="40" cy="72" rx="26" ry="18" fill="#9EA3A8"/>
+    </symbol>
+
+    <!-- FEMALE: slightly warmer grey, same head, narrower shoulders + hint of hair width -->
+    <symbol id="pfp-female" viewBox="0 0 80 80">
+      <rect width="80" height="80" fill="#E8D8E8"/>
+      <!-- head -->
+      <circle cx="40" cy="29" r="14" fill="#B08EB0"/>
+      <!-- shoulders -->
+      <ellipse cx="40" cy="72" rx="22" ry="18" fill="#B08EB0"/>
+    </symbol>
+
+    <!-- TEACHER: same male but with a tiny mortarboard on top -->
+    <symbol id="pfp-teacher" viewBox="0 0 80 80">
+      <rect width="80" height="80" fill="#DBEAFE"/>
+      <circle cx="40" cy="31" r="14" fill="#6B8CAE"/>
+      <ellipse cx="40" cy="72" rx="26" ry="18" fill="#6B8CAE"/>
+      <!-- mortarboard board -->
+      <rect x="25" y="16" width="30" height="5" rx="1" fill="#1a1008"/>
+      <!-- cap dome -->
+      <rect x="31" y="11" width="18" height="7" rx="3" fill="#1a1008"/>
+      <!-- tassel -->
+      <line x1="55" y1="18" x2="59" y2="24" stroke="#FFE135" stroke-width="2"/>
+      <circle cx="59" cy="25" r="2" fill="#FFE135"/>
+    </symbol>
+
+    <!-- CLAUDE: purple robot -->
+    <symbol id="pfp-claude" viewBox="0 0 80 80">
+      <rect width="80" height="80" fill="#EDE9FE"/>
+      <!-- robot head -->
+      <rect x="24" y="18" width="32" height="28" rx="7" fill="#9B59B6"/>
+      <!-- eyes -->
+      <circle cx="33" cy="31" r="4" fill="white"/>
+      <circle cx="47" cy="31" r="4" fill="white"/>
+      <circle cx="33" cy="31" r="2" fill="#9B59B6"/>
+      <circle cx="47" cy="31" r="2" fill="#9B59B6"/>
+      <!-- mouth line -->
+      <rect x="31" y="39" width="18" height="3" rx="1.5" fill="#7C3AED"/>
+      <!-- antenna -->
+      <line x1="40" y1="18" x2="40" y2="10" stroke="#9B59B6" stroke-width="2.5"/>
+      <circle cx="40" cy="8" r="3" fill="#FFE135"/>
+      <!-- body/shoulders -->
+      <ellipse cx="40" cy="72" rx="26" ry="18" fill="#9B59B6"/>
+    </symbol>
+
+  </defs>
+</svg>
+
+<header>
+  <div class="header-bang">&#9889; ClASS OF 2027</div>
+  <div class="header-badge">CS &amp; CE CLASS</div>
+  <div class="starburst"></div>
+  <h1>Meet The Class That<br>Made This Possible!</h1>
+  <div class="speech-bubble">&#127881; Special thanks to everyone who contributed!</div>
+</header>
+
+
+<div class="panel-wrap">
+  <div class="section-header">
+    <h2>The Full Roster</h2>
+    <span class="zap">23 Members</span>
+  </div>
+
+  <div class="grid">
+
+    <div class="member-card card-teacher">
+      <div class="avatar"><svg><use href="#pfp-teacher"/></svg></div>
+      <h2>Dr. AbdulBasit</h2>
+      <span class="role-badge">&#127979; Instructor</span>
+      <p class="role">Teacher and Instructor</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Mohammed Najmaldeen</h2>
+      <span class="role-badge">&#127959; Manager</span>
+      <p class="role">Main Page Creator &amp; Manager<br>+ IPC: Message Passing</p>
+    </div>
+
+    <div class="member-card card-claude">
+      <div class="avatar"><svg><use href="#pfp-claude"/></svg></div>
+      <h2>Claude</h2>
+      <span class="role-badge">&#127912; AI</span>
+      <p class="role">UI Designer</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-female"/></svg></div>
+      <h2>Ayah Nabil</h2>
+      <span class="role-badge">&#128190; IPC</span>
+      <p class="role">IPC: Shared Memory Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-female"/></svg></div>
+      <h2>Sama Yunus</h2>
+      <span class="role-badge">&#128300; read()</span>
+      <p class="role">Read() System Call Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-female"/></svg></div>
+      <h2>Kosar Rebwar</h2>
+      <span class="role-badge">&#128274; Deadlocks</span>
+      <p class="role">Deadlocks Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Leon Hawre</h2>
+      <span class="role-badge">&#9881; SJF</span>
+      <p class="role">SJF Scheduler Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-female"/></svg></div>
+      <h2>Chera Ihsan</h2>
+      <span class="role-badge">&#9881; Priority</span>
+      <p class="role">Priority Scheduling (Non-Preemptive) Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-female"/></svg></div>
+      <h2>Zeyineb Swara</h2>
+      <span class="role-badge">&#9203; wait()</span>
+      <p class="role">Wait System Call Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Mahmood Jihad</h2>
+      <span class="role-badge">&#9881; Preemptive</span>
+      <p class="role">Preemptive vs Non-Preemptive Scheduling Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Yahya Rubar</h2>
+      <span class="role-badge">&#128300; lseek()</span>
+      <p class="role">Lseek System Call Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Savan Taher</h2>
+      <span class="role-badge">&#128300; sleep()</span>
+      <p class="role">Sleep System Call Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-female"/></svg></div>
+      <h2>Lara Syamand</h2>
+      <span class="role-badge">&#128300; exit()</span>
+      <p class="role">Exit System Call Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Rasti Mohammed</h2>
+      <span class="role-badge">&#128190; PCB</span>
+      <p class="role">PCB Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Diyar Zardasht</h2>
+      <span class="role-badge">&#128300; write()</span>
+      <p class="role">Write System Call Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Abdul-Rahman Ibrahim</h2>
+      <span class="role-badge">&#9881; Priority</span>
+      <p class="role">Priority Scheduling (Preemptive) Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Sahand Sirwan</h2>
+      <span class="role-badge">&#128300; fork()</span>
+      <p class="role">Fork System Call Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Mitan Nimat</h2>
+      <span class="role-badge">&#128190; DMA</span>
+      <p class="role">DMA Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Shaho Avdal</h2>
+      <span class="role-badge">&#9881; FCFS</span>
+      <p class="role">First Come First Served Scheduling Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Diyako Twana</h2>
+      <span class="role-badge">&#128300; dup()</span>
+      <p class="role">Dup System Call Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Adil Rawand</h2>
+      <span class="role-badge">&#128190; Linker</span>
+      <p class="role">Linker and Loader Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Ivan Madni</h2>
+      <span class="role-badge">&#128190; Process States</span>
+      <p class="role">Process States Page Creator</p>
+    </div>
+
+    <div class="member-card">
+      <div class="avatar"><svg><use href="#pfp-male"/></svg></div>
+      <h2>Ahmad Mohammed</h2>
+      <span class="role-badge">&#128190; Context Switch</span>
+      <p class="role">Context Switching Page Creator</p>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <p>&#127881; Operating Systems Class Project &nbsp;</p>
+</footer>
+
+</body>
+</html>

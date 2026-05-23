@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SJF CPU Scheduling Demo</title>
+    <link rel="stylesheet" href="SJF.css">
+</head>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f4f7fb;
+    color: #111;
+}
+header {
+    background: #003366;
+    color: #fff;
+    padding: 20px 10%;
+    text-align: center;
+}
+main {
+    max-width: 1000px;
+    margin: 30px auto;
+    padding: 0 20px 40px;
+}
+h1, h2, h3 {
+    margin-top: 1.4em;
+}
+.card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+.grid {
+    display: grid;
+    gap: 20px;
+}
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+input[type="number"], button, select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+button {
+    background: #0058a3;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+button:hover {
+    background: #004077;
+}
+.table-wrapper {
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+}
+th, td {
+    text-align: center;
+    padding: 12px 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+th {
+    background: #eef2ff;
+}
+.gantt {
+    position: relative;
+    margin-top: 16px;
+    min-width: 100%;
+    height: 60px;
+    background: #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+.gantt-bar {
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    border-radius: 8px;
+    background: #2563eb;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 8px;
+}
+.gantt-bar span {
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+.gantt-ticks {
+    position: relative;
+    margin-top: 8px;
+    font-size: 0.9rem;
+    height: 28px;
+    min-width: 100%;
+}
+.gantt-tick {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+.gantt-tick span {
+    display: inline-block;
+    padding-top: 10px;
+}
+.gantt-tick::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 8px;
+    background: #334155;
+}
+.gantt-tick.final {
+    transform: translateX(-50%);
+}
+.gantt-tick.final::before {
+    left: 50%;
+}
+
+.explanation p {
+    line-height: 1.7;
+}
+.note {
+    background: #eef6ff;
+    border-left: 4px solid #2563eb;
+    padding: 14px 16px;
+    margin-top: 16px;
+}
+@media (max-width: 720px) {
+    header, main {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}
+</style>
+
+<body>
+    <header>
+        <h1>Shortest Job First (SJF) CPU Scheduling</h1>
+        <p>Interactive scheduler demonstration with written theory and a live result calculator.</p>
+    </header>
+    <main>
+        <section class="card explanation">
+            <h2>Theory and Lab Concept</h2>
+            <p>Shortest Job First (SJF) is a CPU scheduling algorithm that selects the process with the smallest burst time next. In this lab-style demonstration, the scheduler decides the execution order based on each process burst length, minimizing average waiting time when arrival times are equal or when all processes are ready.</p>
+            <p>There are two main SJF variants:</p>
+            <ul>
+                <li><strong>Non-preemptive SJF:</strong> Once the CPU starts running a process, it runs until completion before the scheduler picks the next shortest job.</li>
+                <li><strong>Preemptive SJF</strong> (also called Shortest Remaining Time First): The scheduler may interrupt a running process if a newly arrived process has a shorter remaining burst time.</li>
+            </ul>
+            <p>This page demonstrates the non-preemptive version, which is commonly used in teaching labs because it makes the order and waiting time calculations easy to follow.</p>
+            <h3>Key terms</h3>
+            <ul>
+                <li><strong>Burst time:</strong> The time required for a process to execute on the CPU.</li>
+                <li><strong>Arrival time:</strong> The time at which a process becomes ready for execution.</li>
+                <li><strong>Waiting time:</strong> How long a process waits in the ready queue before it begins execution.</li>
+                <li><strong>Turnaround time:</strong> Total time from arrival to completion of a process.</li>
+            </ul>
+            <div class="note">
+                <strong>Lab concept:</strong> SJF aims to reduce the average waiting time in the ready queue by always choosing the shortest next process. This often improves throughput, but may cause starvation if long processes are repeatedly delayed.</div>
+        </section>
+
+        <section class="card">
+            <h2>Interactive Scheduler</h2>
+            <div class="grid" style="grid-template-columns: 1fr 1fr;">
+                <div>
+                    <label for="processCount">Number of processes</label>
+                    <select id="processCount">
+                        <option value="3">3</option>
+                        <option value="4" selected>4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="arrivalToggle">Use arrival times?</label>
+                    <select id="arrivalToggle">
+                        <option value="no">No, all arrive at time 0</option>
+                        <option value="yes">Yes, use arrival times</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-wrapper" style="margin-top: 20px;">
+                <table id="processTable">
+                    <thead>
+                        <tr>
+                            <th>Process</th>
+                            <th>Burst Time</th>
+                            <th>Arrival Time</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <button id="calculateBtn" style="margin-top: 18px;">Calculate Schedule</button>
+            <div id="resultSection" style="display:none; margin-top: 26px;">
+                <h3>Schedule Results</h3>
+                <div id="summary"></div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Process</th>
+                                <th>Start</th>
+                                <th>Finish</th>
+                                <th>Waiting</th>
+                                <th>Turnaround</th>
+                            </tr>
+                        </thead>
+                        <tbody id="outputRows"></tbody>
+                    </table>
+                </div>
+                <div class="gantt" id="ganttChart"></div>
+                <div class="gantt-ticks" id="ganttTicks"></div>
+            </div>
+        </section>
+    </main>
+    <script>
+        const countSelect = document.getElementById('processCount');
+        const arrivalToggle = document.getElementById('arrivalToggle');
+        const tbody = document.querySelector('#processTable tbody');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resultSection = document.getElementById('resultSection');
+        const outputRows = document.getElementById('outputRows');
+        const summary = document.getElementById('summary');
+        const ganttChart = document.getElementById('ganttChart');
+        const ganttTicks = document.getElementById('ganttTicks');
+
+        function buildTable() {
+            const count = Number(countSelect.value);
+            const useArrival = arrivalToggle.value === 'yes';
+            tbody.innerHTML = '';
+
+            for (let i = 1; i <= count; i++) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>P${i}</td>
+                    <td><input type="number" min="1" value="${i + 1}" class="burst" /></td>
+                    <td><input type="number" min="0" value="${useArrival ? i - 1 : 0}" class="arrival" ${useArrival ? '' : 'disabled'} /></td>
+                `;
+                tbody.appendChild(row);
+            }
+        }
+
+        function parseInput() {
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            return rows.map((row, index) => {
+                const burst = Number(row.querySelector('.burst').value) || 1;
+                const arrival = Number(row.querySelector('.arrival').value) || 0;
+                return {
+                    id: 'P' + (index + 1),
+                    burst,
+                    arrival,
+                    executed: false,
+                };
+            });
+        }
+
+        function calculateSJF(processes) {
+            let time = 0;
+            const order = [];
+            const completed = [];
+            const total = processes.length;
+
+            while (completed.length < total) {
+                const ready = processes
+                    .filter(p => !p.executed && p.arrival <= time)
+                    .sort((a, b) => a.burst - b.burst || a.arrival - b.arrival);
+
+                const current = ready[0];
+                if (!current) {
+                    time += 1;
+                    continue;
+                }
+
+                current.start = time;
+                current.finish = time + current.burst;
+                current.waiting = current.start - current.arrival;
+                current.turnaround = current.finish - current.arrival;
+                current.executed = true;
+                order.push(current);
+                completed.push(current);
+                time = current.finish;
+            }
+
+            return order;
+        }
+
+        function renderResult(order) {
+            outputRows.innerHTML = '';
+            ganttChart.innerHTML = '';
+            ganttTicks.innerHTML = '';
+
+            const totalWaiting = order.reduce((sum, p) => sum + p.waiting, 0);
+            const totalTurnaround = order.reduce((sum, p) => sum + p.turnaround, 0);
+            const avgWaiting = (totalWaiting / order.length).toFixed(2);
+            const avgTurnaround = (totalTurnaround / order.length).toFixed(2);
+            const totalDuration = order[order.length - 1].finish;
+
+            summary.innerHTML = `<p><strong>Average waiting time:</strong> ${avgWaiting} units &nbsp;|&nbsp; <strong>Average turnaround time:</strong> ${avgTurnaround} units</p>`;
+
+            order.forEach(proc => {
+                const leftPct = (proc.start / totalDuration) * 100;
+                const widthPct = (proc.burst / totalDuration) * 100;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${proc.id}</td>
+                    <td>${proc.start}</td>
+                    <td>${proc.finish}</td>
+                    <td>${proc.waiting}</td>
+                    <td>${proc.turnaround}</td>
+                `;
+                outputRows.appendChild(row);
+
+                const bar = document.createElement('div');
+                bar.className = 'gantt-bar';
+                bar.style.left = `${leftPct}%`;
+                bar.style.width = `${widthPct}%`;
+                bar.innerHTML = `<span>${proc.id}</span>`;
+                ganttChart.appendChild(bar);
+
+                const tick = document.createElement('div');
+                tick.className = 'gantt-tick';
+                tick.style.left = `${leftPct}%`;
+                tick.innerHTML = `<span>${proc.start}</span>`;
+                ganttTicks.appendChild(tick);
+            });
+
+            const finalTick = document.createElement('div');
+            finalTick.className = 'gantt-tick final';
+            finalTick.style.left = '100%';
+            finalTick.innerHTML = `<span>${order[order.length - 1].finish}</span>`;
+            ganttTicks.appendChild(finalTick);
+        }
+
+
+        countSelect.addEventListener('change', buildTable);
+        arrivalToggle.addEventListener('change', () => {
+            const useArrival = arrivalToggle.value === 'yes';
+            tbody.querySelectorAll('.arrival').forEach(input => {
+                input.disabled = !useArrival;
+                if (!useArrival) input.value = 0;
+            });
+        });
+
+        calculateBtn.addEventListener('click', () => {
+            const processes = parseInput();
+            const order = calculateSJF(processes);
+            renderResult(order);
+            resultSection.style.display = 'block';
+        });
+
+        buildTable();
+    </script>
+</body>
+</html>

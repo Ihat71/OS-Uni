@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operating Systems Interactive Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after {
+    margin: 0; padding: 0; box-sizing: border-box;
+  }
+
+  :root {
+    --ink: #1a1008;
+    --yellow: #FFE135;
+    --red: #E8312A;
+    --blue: #1B6CA8;
+    --teal: #00A896;
+    --paper: #FFF8E7;
+    --panel-bg: #FFFDF5;
+    --outline: 3px solid var(--ink);
+    --outline-thick: 4px solid var(--ink);
+  }
+
+  body {
+    background-color: #f0e8d0;
+    background-image:
+      radial-gradient(circle, #c8b99055 1px, transparent 1px);
+    background-size: 18px 18px;
+    font-family: 'Comic Neue', cursive;
+    color: var(--ink);
+    padding: 24px;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    background: var(--yellow);
+    border: var(--outline-thick);
+    border-radius: 6px;
+    box-shadow: 6px 6px 0 var(--ink);
+    padding: 40px 30px 30px;
+    text-align: center;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, #00000015 1px, transparent 1px);
+    background-size: 12px 12px;
+    pointer-events: none;
+  }
+
+  .header-bang {
+    position: absolute;
+    font-family: 'Bangers', cursive;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    background: var(--red);
+    color: white;
+    border: 2.5px solid var(--ink);
+    padding: 4px 12px;
+    border-radius: 4px;
+    box-shadow: 3px 3px 0 var(--ink);
+    top: 14px; left: 20px;
+    transform: rotate(-3deg);
+  }
+
+  .header-badge {
+    position: absolute;
+    top: 12px; right: 20px;
+    background: var(--blue);
+    color: white;
+    font-family: 'Bangers', cursive;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    padding: 4px 12px;
+    border: 2.5px solid var(--ink);
+    border-radius: 4px;
+    box-shadow: 3px 3px 0 var(--ink);
+    transform: rotate(2deg);
+  }
+
+  header h1 {
+    font-family: 'Bangers', cursive;
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    letter-spacing: 3px;
+    line-height: 1.1;
+    color: var(--ink);
+    text-shadow: 3px 3px 0 #ffffff88;
+    position: relative;
+    z-index: 1;
+  }
+
+  header p {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-top: 10px;
+    color: var(--ink);
+    opacity: 0.75;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* speech bubble */
+  .speech-bubble {
+    display: inline-block;
+    background: white;
+    border: var(--outline);
+    border-radius: 20px;
+    padding: 8px 18px;
+    margin-top: 16px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    position: relative;
+    z-index: 1;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .speech-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -14px; left: 50%;
+    transform: translateX(-50%);
+    border: 7px solid transparent;
+    border-top-color: var(--ink);
+  }
+  .speech-bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -10px; left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: white;
+    z-index: 1;
+  }
+
+  /* ── SEARCH ── */
+  .search-wrap {
+    max-width: 560px;
+    margin: 0 auto 28px;
+    position: relative;
+  }
+  .search-wrap input {
+    width: 100%;
+    padding: 14px 18px 14px 48px;
+    font-family: 'Comic Neue', cursive;
+    font-size: 1rem;
+    font-weight: 700;
+    border: var(--outline-thick);
+    border-radius: 50px;
+    background: white;
+    box-shadow: 5px 5px 0 var(--ink);
+    outline: none;
+    transition: box-shadow .15s, transform .15s;
+    color: var(--ink);
+  }
+  .search-wrap input:focus {
+    box-shadow: 7px 7px 0 var(--ink);
+    transform: translate(-1px, -1px);
+  }
+  .search-wrap input::placeholder { color: #999; font-style: italic; }
+  .search-icon {
+    position: absolute;
+    left: 17px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    pointer-events: none;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .tab-btn {
+    font-family: 'Bangers', cursive;
+    letter-spacing: 1.5px;
+    font-size: 1rem;
+    padding: 10px 20px;
+    border: var(--outline-thick);
+    border-radius: 6px;
+    background: white;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: 4px 4px 0 var(--ink);
+    transition: transform .12s, box-shadow .12s, background .12s;
+    position: relative;
+  }
+  .tab-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--ink);
+  }
+  .tab-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .tab-btn.active { background: var(--yellow); }
+  .tab-btn[data-tab="cpu"]     { --accent: #E8312A; }
+  .tab-btn[data-tab="process"] { --accent: #00A896; }
+  .tab-btn[data-tab="thread"]  { --accent: #1B6CA8; }
+  .tab-btn[data-tab="arch"]    { --accent: #9B59B6; }
+  .tab-btn[data-tab="lab"]     { --accent: #E67E22; }
+  .tab-btn.active { background: var(--accent, var(--yellow)); color: white; }
+
+  /* ── SECTION PANEL ── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .section-header h2 {
+    font-family: 'Bangers', cursive;
+    font-size: 2rem;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .zap {
+    display: inline-block;
+    background: var(--yellow);
+    border: var(--outline);
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-family: 'Bangers', cursive;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    box-shadow: 3px 3px 0 var(--ink);
+    white-space: nowrap;
+  }
+
+  /* ── GRID ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--panel-bg);
+    border: var(--outline-thick);
+    border-radius: 8px;
+    padding: 18px 18px 14px;
+    box-shadow: 5px 5px 0 var(--ink);
+    transition: transform .15s, box-shadow .15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: var(--card-accent, var(--yellow));
+  }
+  .card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 8px 8px 0 var(--ink);
+  }
+
+  #cpu    .card { --card-accent: #E8312A; }
+  #process .card { --card-accent: #00A896; }
+  #thread  .card { --card-accent: #1B6CA8; }
+  #arch    .card { --card-accent: #9B59B6; }
+  #lab     .card { --card-accent: #E67E22; }
+
+  .card h3 {
+    font-family: 'Bangers', cursive;
+    font-size: 1.25rem;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    line-height: 1.2;
+  }
+
+  .card p {
+    font-size: 0.85rem;
+    color: #555;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+
+  .card a {
+    display: inline-block;
+    font-family: 'Bangers', cursive;
+    letter-spacing: 1.5px;
+    font-size: 0.95rem;
+    padding: 7px 16px;
+    background: var(--ink);
+    color: var(--yellow);
+    border: 2.5px solid var(--ink);
+    border-radius: 5px;
+    text-decoration: none;
+    box-shadow: 3px 3px 0 #00000033;
+    transition: background .12s, color .12s, transform .12s;
+  }
+  .card a:hover {
+    background: var(--yellow);
+    color: var(--ink);
+    transform: translateY(-1px);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: 48px;
+    text-align: center;
+    padding: 20px;
+    border: var(--outline);
+    border-radius: 8px;
+    background: white;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  footer p { font-weight: 700; font-size: 0.9rem; }
+  footer a {
+    color: var(--blue);
+    font-weight: 700;
+    text-decoration: none;
+    border-bottom: 2px solid var(--blue);
+  }
+  footer a:hover { color: var(--red); border-color: var(--red); }
+
+  /* starburst on header */
+  .starburst {
+    position: absolute;
+    bottom: 20px; right: 30px;
+    width: 70px; height: 70px;
+    background: var(--red);
+    clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+    display: flex; align-items: center; justify-content: center;
+    border: 3px solid var(--ink);
+    animation: spin 8s linear infinite;
+  }
+  .starburst span {
+    font-family: 'Bangers', cursive;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    color: white;
+    text-align: center;
+    line-height: 1.2;
+    z-index: 1;
+    pointer-events: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* panel border decoration */
+  .panel-wrap {
+    background: white;
+    border: var(--outline-thick);
+    border-radius: 10px;
+    box-shadow: 6px 6px 0 var(--ink);
+    padding: 24px;
+    margin-bottom: 12px;
+  }
+
+  /* no-result message */
+  .no-result {
+    display: none;
+    font-family: 'Bangers', cursive;
+    font-size: 1.6rem;
+    letter-spacing: 2px;
+    text-align: center;
+    padding: 40px;
+    color: var(--red);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-bang">&#9889; COMP ENGINEERING AND SCIENCE</br></div>
+  <div class="header-badge">UNI PROJECT</div>
+  <div class="starburst"><span>READ THIS!</span></div>
+
+  <h1>Operating Systems<br>Interactive Portfolio</h1>
+  <div class="speech-bubble">&#128187; Your Class Study Guide & Concept Collection!</div>
+</header>
+
+<div class="search-wrap">
+  <span class="search-icon">&#128269;</span>
+  <input type="text" id="search" placeholder="Search for a topic...">
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="cpu"     onclick="showTab('cpu')">&#9881; CPU Scheduling</button>
+  <button class="tab-btn"        data-tab="process" onclick="showTab('process')">&#129504; Processes & Memory</button>
+  <button class="tab-btn"        data-tab="thread"  onclick="showTab('thread')">&#129523; Threading</button>
+  <button class="tab-btn"        data-tab="arch"    onclick="showTab('arch')">&#127963; Architecture</button>
+  <button class="tab-btn"        data-tab="lab"     onclick="showTab('lab')">&#128300; System Calls</button>
+</div>
+
+<p class="no-result" id="no-result">&#128165; Nothing found! Try a different search.</p>
+
+<!-- CPU -->
+<div id="cpu" class="section active">
+  <div class="panel-wrap">
+    <div class="section-header">
+      <h2>CPU Scheduling</h2>
+      <span class="zap">5 Topics</span>
+    </div>
+    <div class="grid">
+      <div class="card"><h3>FCFS Scheduler</h3><p>First-Come, First-Served — the simplest scheduling algorithm.</p><a href="pages/task1_fcfs.html">Open &#10142;</a></div>
+      <div class="card"><h3>SJF Scheduler</h3><p>Shortest Job First — minimizes average waiting time.</p><a href="pages/task2_sjf.html">Open &#10142;</a></div>
+      <div class="card"><h3>Priority (Preemptive)</h3><p>Higher-priority processes can interrupt running ones.</p><a href="pages/task3_preemptive_priority_scheduling.html">Open &#10142;</a></div>
+      <div class="card"><h3>Priority (Non-Preemptive)</h3><p>Priority-based scheduling without interruption.</p><a href="pages/task4_priority_nonpreemptive.html">Open &#10142;</a></div>
+      <div class="card"><h3>Preemptive vs Non-Preemptive</h3><p>A side-by-side comparison of both scheduling strategies.</p><a href="pages/task5_preemptive.html">Open &#10142;</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROCESS -->
+<div id="process" class="section">
+  <div class="panel-wrap">
+    <div class="section-header">
+      <h2>Processes, Memory & Sync</h2>
+      <span class="zap">9 Topics</span>
+    </div>
+    <div class="grid">
+      <div class="card"><h3>Process States</h3><p>New, ready, running, waiting, terminated — the lifecycle.</p><a href="pages/task6_process_states.html">Open &#10142;</a></div>
+      <div class="card"><h3>PCB</h3><p>Process Control Block — the OS's data structure for a process.</p><a href="pages/task7_pcb.html">Open &#10142;</a></div>
+      <div class="card"><h3>Context Switching</h3><p>How the CPU switches between processes seamlessly.</p><a href="pages/task8_context_switching.html">Open &#10142;</a></div>
+      <div class="card"><h3>IPC Shared Memory</h3><p>Processes communicating via a shared memory region.</p><a href="pages/task9_shared_memory.html">Open &#10142;</a></div>
+      <div class="card"><h3>IPC Message Passing</h3><p>Send and receive messages between processes.</p><a href="pages/task10_message_passing.html">Open &#10142;</a></div>
+      <div class="card"><h3>DMA</h3><p>Direct Memory Access — hardware-level data transfers.</p><a href="pages/task11_dma.html">Open &#10142;</a></div>
+      <div class="card"><h3>Linker & Loader</h3><p>How programs go from object files to running processes.</p><a href="pages/task12_linker_and_loader.html">Open &#10142;</a></div>
+      <div class="card"><h3>Deadlocks</h3><p>Circular waits and how the OS detects and avoids them.</p><a href="pages/task13_Deadlocks.html">Open &#10142;</a></div>
+      <div class="card"><h3>Virtual Memory & Paging</h3><p>Expanding memory beyond physical RAM with pages.</p><a href="pages/not_jurisdiction.html">Open &#10142;</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- THREAD -->
+<div id="thread" class="section">
+  <div class="panel-wrap">
+    <div class="section-header">
+      <h2>Threading & Concurrency</h2>
+      <span class="zap">5 Topics</span>
+    </div>
+    <div class="grid">
+      <div class="card"><h3>Threading</h3><p>Lightweight units of execution within a process.</p><a href="pages/not_jurisdiction.html">Open &#10142;</a></div>
+      <div class="card"><h3>Parallelism</h3><p>Truly simultaneous execution across multiple cores.</p><a href="pages/not_jurisdiction.html">Open &#10142;</a></div>
+      <div class="card"><h3>Concurrency</h3><p>Managing multiple tasks that overlap in time.</p><a href="pages/not_jurisdiction.html">Open &#10142;</a></div>
+      <div class="card"><h3>Multithreading Models</h3><p>Many-to-one, one-to-one, and many-to-many mappings.</p><a href="pages/not_jurisdiction.html">Open &#10142;</a></div>
+      <div class="card"><h3>Benefits of Multithreading</h3><p>Responsiveness, resource sharing, economy, and scalability.</p><a href="pages/not_jurisdiction.html">Open &#10142;</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ARCH -->
+<div id="arch" class="section">
+  <div class="panel-wrap">
+    <div class="section-header">
+      <h2>Architecture & Core Concepts</h2>
+      <span class="zap">3 Topics</span>
+    </div>
+    <div class="grid">
+      <div class="card"><h3>OS Bridge</h3><p>How the OS connects hardware and user applications.</p><a href="pages/not_jurisdiction.html">Open &#10142;</a></div>
+      <div class="card"><h3>User Mode vs Kernel Mode</h3><p>The two privilege levels every OS operates between.</p><a href="pages/not_jurisdiction.html">Open &#10142;</a></div>
+      <div class="card"><h3>Interrupts</h3><p>Hardware and software signals that demand CPU attention.</p><a href="pages/not_jurisdiction.html">Open &#10142;</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- LAB -->
+<div id="lab" class="section">
+  <div class="panel-wrap">
+    <div class="section-header">
+      <h2>Lab & System Calls</h2>
+      <span class="zap">8 Topics</span>
+    </div>
+    <div class="grid">
+      <div class="card"><h3>lseek()</h3><p>Reposition the file offset of an open file descriptor.</p><a href="pages/task23_lseek.html">Open &#10142;</a></div>
+      <div class="card"><h3>fork()</h3><p>Create a child process — the cornerstone of Unix.</p><a href="pages/task24_fork.html">Open &#10142;</a></div>
+      <div class="card"><h3>wait()</h3><p>Block until a child process changes state.</p><a href="pages/task25_wait.html">Open &#10142;</a></div>
+      <div class="card"><h3>exit()</h3><p>Terminate the calling process and flush streams.</p><a href="pages/task26_exit.html">Open &#10142;</a></div>
+      <div class="card"><h3>sleep()</h3><p>Suspend execution for a specified number of seconds.</p><a href="pages/task27_sleep.html">Open &#10142;</a></div>
+      <div class="card"><h3>dup() / dup2()</h3><p>Duplicate file descriptors for I/O redirection.</p><a href="pages/task28_dup.html">Open &#10142;</a></div>
+      <div class="card"><h3>read()</h3><p>Read bytes from a file descriptor into a buffer.</p><a href="pages/task29_read.html">Open &#10142;</a></div>
+      <div class="card"><h3>write()</h3><p>Write bytes from a buffer to a file descriptor.</p><a href="pages/task30_write.html">Open &#10142;</a></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>&#127881; Operating Systems Class Project &nbsp;|&nbsp; <a href="pages/team.html">&#128101; Meet the Team</a></p>
+</footer>
+
+<script>
+  const sections = document.querySelectorAll('.section');
+  const buttons  = document.querySelectorAll('.tab-btn');
+
+  function showTab(id) {
+    sections.forEach(s => s.classList.remove('active'));
+    buttons.forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelector(`[data-tab="${id}"]`).classList.add('active');
+    filterCards(document.getElementById('search').value);
+  }
+
+  function filterCards(val) {
+    const query = val.toLowerCase().trim();
+    const allCards = document.querySelectorAll('.card');
+    let visibleCount = 0;
+
+    allCards.forEach(card => {
+      const inActiveSection = card.closest('.section.active');
+      if (!inActiveSection) return;
+      const match = card.innerText.toLowerCase().includes(query);
+      card.style.display = match ? '' : 'none';
+      if (match) visibleCount++;
+    });
+
+    document.getElementById('no-result').style.display =
+      (query && visibleCount === 0) ? 'block' : 'none';
+  }
+
+  document.getElementById('search').addEventListener('input', e => {
+    // when searching, show all sections
+    const query = e.target.value.toLowerCase().trim();
+    if (query) {
+      sections.forEach(s => s.classList.remove('active'));
+      sections.forEach(s => s.classList.add('active'));
+      buttons.forEach(b => b.classList.remove('active'));
+      let anyVisible = 0;
+      document.querySelectorAll('.card').forEach(card => {
+        const match = card.innerText.toLowerCase().includes(query);
+        card.style.display = match ? '' : 'none';
+        if (match) anyVisible++;
+      });
+      document.getElementById('no-result').style.display = anyVisible === 0 ? 'block' : 'none';
+    } else {
+      // reset to first tab
+      document.querySelectorAll('.card').forEach(c => c.style.display = '');
+      sections.forEach(s => s.classList.remove('active'));
+      document.getElementById('cpu').classList.add('active');
+      buttons.forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-tab="cpu"]').classList.add('active');
+      document.getElementById('no-result').style.display = 'none';
+    }
+  });
+</script>
+
+</body>
+</html>

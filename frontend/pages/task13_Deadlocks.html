@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Deadlock in OS</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: linear-gradient(to right, #c69898, #a86d6d);
+    text-align: center;
+}
+
+h1 {
+    background: #490101;
+    color: white;
+    padding: 15px;
+}
+
+.section {
+    background:rgb(248, 230, 230);
+    margin: 20px auto;
+    padding: 20px;
+    border-radius: 12px;
+    width: 80%;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+button {
+    padding: 10px 20px;
+    margin: 10px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.simulate { background: #539ff1; color: white; }
+.reset { background: #e3606d; color: white; }
+
+.container {
+    position: relative;
+    height: 200px;
+}
+
+.box {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    line-height: 100px;
+    color: white;
+    font-weight: bold;
+    border-radius: 10px;
+    transition: 1s;
+}
+
+.p1 { background: rgb(90, 151, 90); left: 50px; top: 50px; }
+.p2 { background: rgb(254, 199, 97); right: 50px; top: 50px; }
+
+.resource1 {
+    background: rgb(255, 70, 70);
+    width: 80px;
+    height: 80px;
+    left: 200px;
+    top: 20px;
+}
+
+.resource2 {
+    background: rgb(178, 71, 178);
+    width: 80px;
+    height: 80px;
+    right: 200px;
+    top: 120px;
+}
+
+.deadlock {
+    background: black !important;
+}
+
+footer {
+    margin-top: 30px;
+    padding: 10px;
+    background: #490101;
+    color: white;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Deadlock in Operating Systems</h1>
+
+<div class="section">
+<h2>What is Deadlock?</h2>
+<p>
+A deadlock is a situation in an operating system where two or more processes are unable to continue 
+because each one is waiting for a resource held by another process. As a result, none of the processes can proceed, 
+and the system becomes stuck.
+</p>
+</div>
+
+<div class="section">
+<h2>4 Necessary Conditions</h2>
+<ul style="text-align:left;">
+<li>Mutual Exclusion</li>
+<li>Hold and Wait</li>
+<li>No Preemption</li>
+<li>Circular Wait</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>Interactive Deadlock Simulation</h2>
+
+<div class="container">
+    <div id="p1" class="box p1">P1</div>
+    <div id="p2" class="box p2">P2</div>
+
+    <div class="box resource1">R1</div>
+    <div class="box resource2">R2</div>
+</div>
+
+<p id="status">Click simulate to see deadlock</p>
+
+<button class="simulate" onclick="simulate()">Simulate</button>
+<button class="reset" onclick="reset()">Reset</button>
+
+</div>
+
+<div class="section">
+<h2>How to Prevent Deadlock</h2>
+<p>
+Deadlocks can be prevented by breaking one of the four conditions:
+</p>
+<ul style="text-align:left;">
+<li>Avoid circular waiting</li>
+<li>Allow resource preemption</li>
+<li>Do not hold multiple resources</li>
+<li>Allow sharing of resources</li>
+</ul>
+</div>
+
+<footer>
+<p>Created by: Kosar Rebwar Jameel</p>
+</footer>
+
+<script>
+function simulate() {
+    document.getElementById("status").innerHTML =
+    "P1 holds R1 and waits for R2 | P2 holds R2 and waits for R1 → DEADLOCK!";
+
+    document.getElementById("p1").style.left = "250px";
+    document.getElementById("p2").style.right = "250px";
+
+    document.getElementById("p1").classList.add("deadlock");
+    document.getElementById("p2").classList.add("deadlock");
+}
+
+function reset() {
+    document.getElementById("status").innerHTML =
+    "Click simulate to see deadlock";
+
+    document.getElementById("p1").style.left = "50px";
+    document.getElementById("p2").style.right = "50px";
+
+    document.getElementById("p1").classList.remove("deadlock");
+    document.getElementById("p2").classList.remove("deadlock");
+}
+</script>
+
+</body>
+</html>

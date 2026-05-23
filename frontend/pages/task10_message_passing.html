@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPC: Message Passing Model</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c14;
+    --panel: #0d1421;
+    --panel2: #111b2e;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #7fff4f;
+    --accent4: #ffcc00;
+    --text: #c8dff0;
+    --text-dim: #5a7a9a;
+    --glow: 0 0 20px rgba(0,212,255,0.4);
+    --glow2: 0 0 20px rgba(255,107,53,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 20px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    opacity: 0.8;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(22px, 5vw, 40px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 2px;
+    text-shadow: 0 0 30px rgba(0,212,255,0.5);
+    line-height: 1.1;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    margin-top: 8px;
+    font-size: 15px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::before {
+    content: '';
+    width: 20px; height: 1px;
+    background: var(--accent);
+  }
+
+  /* ── CONCEPT CARDS ── */
+  .concepts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+
+  .concept-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+  .concept-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .concept-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+  }
+  .concept-card.orange::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .concept-card.green::before  { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .concept-card.yellow::before { background: linear-gradient(90deg, var(--accent4), transparent); }
+
+  .concept-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .concept-card h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .concept-card p {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 9px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .tab-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .tab-btn:hover:not(.active) {
+    color: var(--text);
+    background: var(--panel2);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── DEMO ARENA ── */
+  .demo-arena {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  /* Process boxes */
+  .processes-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .process-box {
+    flex: 1;
+    min-width: 160px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+  }
+  .process-box.sender { border-color: var(--accent); }
+  .process-box.receiver { border-color: var(--accent2); }
+
+  .process-pid {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .process-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+  .process-state {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    display: inline-block;
+  }
+  .state-running { background: rgba(127,255,79,0.15); color: var(--accent3); border: 1px solid rgba(127,255,79,0.3); }
+  .state-blocked { background: rgba(255,204,0,0.15); color: var(--accent4); border: 1px solid rgba(255,204,0,0.3); }
+  .state-waiting { background: rgba(0,212,255,0.15); color: var(--accent); border: 1px solid rgba(0,212,255,0.3); }
+
+  .mailbox {
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .mailbox-items {
+    min-height: 28px;
+    background: rgba(0,0,0,0.3);
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    padding: 4px;
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+  }
+  .msg-bubble {
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 3px;
+    padding: 2px 7px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    animation: popIn 0.3s ease;
+  }
+  .msg-bubble.orange { background: var(--accent2); }
+  @keyframes popIn {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+
+  /* Channel / pipe visual */
+  .channel-area {
+    flex: 0 0 auto;
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .channel-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .channel-pipe {
+    width: 100%;
+    height: 48px;
+    background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(0,212,255,0.02));
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .channel-pipe .pipe-inner {
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,212,255,0.15), transparent);
+    animation: flowAnim 2s linear infinite;
+  }
+  @keyframes flowAnim {
+    to { left: 100%; }
+  }
+  .channel-type-label {
+    font-size: 11px;
+    color: #fff;
+    font-weight: 600;
+    z-index: 1;
+    letter-spacing: 1px;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .msg-input {
+    flex: 1;
+    min-width: 160px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .msg-input:focus { border-color: var(--accent); }
+  .msg-input::placeholder { color: var(--text-dim); }
+
+  .select-ctrl {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+  }
+  .select-ctrl:focus { border-color: var(--accent); }
+
+  .btn {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 5px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .btn-primary:hover { box-shadow: var(--glow); transform: translateY(-1px); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--accent2);
+    border: 1px solid var(--accent2);
+  }
+  .btn-secondary:hover { background: rgba(255,107,53,0.1); }
+  .btn-danger {
+    background: transparent;
+    color: #ff4444;
+    border: 1px solid #ff4444;
+  }
+  .btn-danger:hover { background: rgba(255,68,68,0.1); }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Message log */
+  .log-panel {
+    background: #040810;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    height: 190px;
+    overflow-y: auto;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .log-panel::-webkit-scrollbar { width: 4px; }
+  .log-panel::-webkit-scrollbar-track { background: transparent; }
+  .log-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-entry {
+    padding: 2px 0;
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+  }
+  .log-time { color: var(--text-dim); flex-shrink: 0; }
+  .log-msg { flex: 1; }
+  .log-info   .log-msg { color: var(--accent); }
+  .log-send   .log-msg { color: var(--accent3); }
+  .log-recv   .log-msg { color: var(--accent2); }
+  .log-sys    .log-msg { color: var(--accent4); }
+  .log-error  .log-msg { color: #ff4444; }
+
+  /* ── THEORY TAB ── */
+  .theory-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media(max-width: 640px) { .theory-grid { grid-template-columns: 1fr; } }
+
+  .theory-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .theory-card h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 14px;
+    letter-spacing: 1px;
+  }
+  .theory-card.orange h3 { color: var(--accent2); }
+  .theory-card.green  h3 { color: var(--accent3); }
+  .theory-card.yellow h3 { color: var(--accent4); }
+
+  .theory-card p, .theory-card li {
+    font-size: 13.5px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    margin-bottom: 6px;
+  }
+  .theory-card li { list-style: none; padding-left: 14px; position: relative; }
+  .theory-card li::before { content: '▸'; position: absolute; left: 0; color: var(--accent); }
+  .theory-card.orange li::before { color: var(--accent2); }
+  .theory-card.green  li::before { color: var(--accent3); }
+  .theory-card.yellow li::before { color: var(--accent4); }
+  .theory-card strong { color: var(--text); font-weight: 600; }
+
+  /* comparison table */
+  .cmp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  .cmp-table th {
+    background: rgba(0,212,255,0.08);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .cmp-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(30,58,95,0.5);
+    color: var(--text-dim);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .cmp-table tr:last-child td { border-bottom: none; }
+  .cmp-table td:first-child { color: var(--text); font-weight: 600; }
+
+  /* ── FLOW DIAGRAM TAB ── */
+  .flow-wrapper {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    overflow-x: auto;
+  }
+  .flow-svg-container { min-width: 600px; }
+
+  svg text { font-family: 'Rajdhani', sans-serif; }
+
+  /* sync/async visual */
+  .sa-demo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media(max-width: 600px) { .sa-demo { grid-template-columns: 1fr; } }
+
+  .sa-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+  }
+  .sa-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    letter-spacing: 1px;
+  }
+  .sa-title.sync  { color: var(--accent); }
+  .sa-title.async { color: var(--accent2); }
+
+  .timeline {
+    position: relative;
+    height: 120px;
+  }
+  .tl-row {
+    position: absolute;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-family: 'Share Tech Mono', monospace;
+    white-space: nowrap;
+  }
+
+  /* ── QUIZ TAB ── */
+  .quiz-wrap {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+  .quiz-question {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px;
+    margin-bottom: 14px;
+  }
+  .q-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .q-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .q-options { display: flex; flex-direction: column; gap: 8px; }
+  .q-opt {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 13.5px;
+    transition: all 0.2s;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .q-opt:hover:not(.answered) { border-color: var(--accent); color: #fff; }
+  .q-opt.correct  { border-color: var(--accent3); background: rgba(127,255,79,0.08); color: var(--accent3); }
+  .q-opt.wrong    { border-color: #ff4444; background: rgba(255,68,68,0.08); color: #ff4444; }
+  .q-opt.answered { cursor: default; }
+  .q-opt-key {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    width: 18px;
+  }
+  .q-feedback {
+    margin-top: 10px;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    display: none;
+  }
+  .q-feedback.show { display: block; }
+  .q-feedback.ok   { background: rgba(127,255,79,0.1);  color: var(--accent3); border: 1px solid rgba(127,255,79,0.2); }
+  .q-feedback.bad  { background: rgba(255,68,68,0.1);   color: #ff4444;        border: 1px solid rgba(255,68,68,0.2); }
+
+  .score-bar {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .score-label { font-size: 13px; color: var(--text-dim); }
+  .score-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--accent);
+  }
+  .reset-quiz { margin-left: auto; }
+
+  /* ── FLYING MESSAGE ANIMATION ── */
+  .fly-msg {
+    position: fixed;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    pointer-events: none;
+    z-index: 100;
+    transition: none;
+  }
+
+  /* stat counters */
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .stat-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 18px;
+    flex: 1;
+    min-width: 100px;
+    text-align: center;
+  }
+  .stat-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--accent);
+  }
+  .stat-lbl { font-size: 11px; color: var(--text-dim); letter-spacing: 1px; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="tag">// Inter-Process Communication //</div>
+    <h1>MESSAGE <span>PASSING</span> MODEL</h1>
+    <p class="subtitle">Processes communicate by sending & receiving messages — no shared memory needed</p>
+  </header>
+
+  <!-- CONCEPT CARDS -->
+  <div class="section-label">Core Concepts</div>
+  <div class="concepts">
+    <div class="concept-card">
+      <span class="concept-icon">📨</span>
+      <h3>Message Passing</h3>
+      <p>Processes exchange data by explicitly sending and receiving messages via the OS kernel — safe across machines.</p>
+    </div>
+    <div class="concept-card orange">
+      <span class="concept-icon">📬</span>
+      <h3>Mailbox / Port</h3>
+      <p>An indirect communication endpoint. Multiple processes can send to the same mailbox; OS queues the messages.</p>
+    </div>
+    <div class="concept-card green">
+      <span class="concept-icon">🔄</span>
+      <h3>Synchronous</h3>
+      <p>Blocking: sender waits until receiver gets the message. Both processes rendezvous at the same time.</p>
+    </div>
+    <div class="concept-card yellow">
+      <span class="concept-icon">⚡</span>
+      <h3>Asynchronous</h3>
+      <p>Non-blocking: sender drops message in buffer and continues. Receiver picks it up later independently.</p>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('demo')">🖥 Live Demo</button>
+    <button class="tab-btn" onclick="switchTab('theory')">📖 Theory</button>
+    <button class="tab-btn" onclick="switchTab('flow')">🔀 Flow Diagram</button>
+    <button class="tab-btn" onclick="switchTab('quiz')">🧠 Quiz</button>
+  </div>
+
+  <!-- ═══════════════ DEMO TAB ═══════════════ -->
+  <div id="tab-demo" class="tab-content active">
+
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-val" id="stat-sent">0</div>
+        <div class="stat-lbl">SENT</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-recv" style="color:var(--accent2)">0</div>
+        <div class="stat-lbl">RECEIVED</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-queue" style="color:var(--accent4)">0</div>
+        <div class="stat-lbl">IN QUEUE</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-dropped" style="color:#ff4444">0</div>
+        <div class="stat-lbl">DROPPED</div>
+      </div>
+    </div>
+
+    <div class="demo-arena">
+
+      <div class="processes-row">
+        <!-- SENDER -->
+        <div class="process-box sender" id="proc-sender">
+          <div class="process-pid">PID: 1001</div>
+          <div class="process-name">PROCESS A</div>
+          <div class="process-state state-running" id="state-sender">RUNNING</div>
+          <div class="mailbox">
+            <div>Outbox</div>
+            <div class="mailbox-items" id="outbox-items"></div>
+          </div>
+        </div>
+
+        <!-- CHANNEL -->
+        <div class="channel-area">
+          <div class="channel-label" id="channel-mode-label">DIRECT</div>
+          <div class="channel-pipe">
+            <div class="pipe-inner"></div>
+            <span class="channel-type-label" id="channel-type-label">CHANNEL</span>
+          </div>
+          <div class="channel-label">↔</div>
+        </div>
+
+        <!-- RECEIVER -->
+        <div class="process-box receiver" id="proc-receiver">
+          <div class="process-pid">PID: 2002</div>
+          <div class="process-name">PROCESS B</div>
+          <div class="process-state state-waiting" id="state-receiver">WAITING</div>
+          <div class="mailbox">
+            <div>Inbox / Mailbox</div>
+            <div class="mailbox-items" id="inbox-items"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTROLS -->
+      <div class="controls">
+        <input class="msg-input" id="msg-input" type="text" maxlength="20" placeholder="Message payload..." value="Hello World">
+        <select class="select-ctrl" id="comm-mode" onchange="updateMode()">
+          <option value="direct-sync">Direct · Sync</option>
+          <option value="direct-async">Direct · Async</option>
+          <option value="mailbox-async">Mailbox · Async</option>
+          <option value="mailbox-sync">Mailbox · Sync</option>
+        </select>
+        <button class="btn btn-primary" id="btn-send" onclick="sendMessage()">Send →</button>
+        <button class="btn btn-secondary" id="btn-receive" onclick="receiveMessage()" disabled>Receive</button>
+        <button class="btn btn-danger" onclick="resetDemo()">Reset</button>
+      </div>
+
+    </div>
+
+    <!-- LOG -->
+    <div class="section-label">System Log</div>
+    <div class="log-panel" id="log-panel">
+      <div class="log-entry log-sys">
+        <span class="log-time">[00:00]</span>
+        <span class="log-msg">IPC Message Passing Demo initialized. Select a mode and send a message.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ THEORY TAB ═══════════════ -->
+  <div id="tab-theory" class="tab-content">
+
+    <div class="sa-demo">
+      <div class="sa-card">
+        <div class="sa-title sync">Synchronous (Blocking)</div>
+        <div class="timeline">
+          <div class="tl-row" style="top:0;left:0;width:100%;background:rgba(0,212,255,0.12);border:1px solid rgba(0,212,255,0.3);color:var(--accent)">Process A (Sender)</div>
+          <div class="tl-row" style="top:36px;left:0;width:38%;background:rgba(0,212,255,0.2);border:1px solid var(--accent);color:var(--accent)">Working</div>
+          <div class="tl-row" style="top:36px;left:39%;width:61%;background:rgba(255,204,0,0.15);border:1px solid var(--accent4);color:var(--accent4)">BLOCKED ⏳</div>
+          <div class="tl-row" style="top:78px;left:0;width:100%;background:rgba(255,107,53,0.1);border:1px solid rgba(255,107,53,0.3);color:var(--accent2)">Process B (Receiver)</div>
+          <div class="tl-row" style="top:0;left:50%;width:1px;height:120px;background:rgba(255,255,255,0.15);border:none;padding:0"></div>
+        </div>
+        <p style="font-size:12px;color:var(--text-dim);margin-top:4px">Sender blocks until receiver calls receive(). Guaranteed rendezvous.</p>
+      </div>
+      <div class="sa-card">
+        <div class="sa-title async">Asynchronous (Non-Blocking)</div>
+        <div class="timeline">
+          <div class="tl-row" style="top:0;left:0;width:100%;background:rgba(0,212,255,0.12);border:1px solid rgba(0,212,255,0.3);color:var(--accent)">Process A (Sender)</div>
+          <div class="tl-row" style="top:36px;left:0;width:38%;background:rgba(0,212,255,0.2);border:1px solid var(--accent);color:var(--accent)">Working</div>
+          <div class="tl-row" style="top:36px;left:39%;width:61%;background:rgba(0,212,255,0.2);border:1px solid var(--accent);color:var(--accent)">Continues ✓</div>
+          <div class="tl-row" style="top:78px;left:0;width:100%;background:rgba(255,107,53,0.1);border:1px solid rgba(255,107,53,0.3);color:var(--accent2)">Process B (Receiver)</div>
+          <div class="tl-row" style="top:0;left:50%;width:1px;height:120px;background:rgba(255,255,255,0.15);border:none;padding:0"></div>
+        </div>
+        <p style="font-size:12px;color:var(--text-dim);margin-top:4px">Sender drops message in buffer and keeps running. Receiver polls later.</p>
+      </div>
+    </div>
+
+    <div class="theory-grid">
+      <div class="theory-card">
+        <h3>Direct Communication</h3>
+        <ul>
+          <li>Sender names the receiver explicitly: <strong>send(P, msg)</strong></li>
+          <li>Receiver may name the sender: <strong>receive(Q, &msg)</strong></li>
+          <li>One link per pair of communicating processes</li>
+          <li>Tight coupling — changing a name breaks the link</li>
+          <li>Example: Unix pipes between parent/child processes</li>
+        </ul>
+      </div>
+      <div class="theory-card orange">
+        <h3>Indirect Communication</h3>
+        <ul>
+          <li>Messages sent to/from <strong>mailboxes (ports)</strong></li>
+          <li>send(<strong>A</strong>, msg) — send to mailbox A</li>
+          <li>receive(<strong>A</strong>, &msg) — receive from mailbox A</li>
+          <li>Multiple processes can share a mailbox</li>
+          <li>Example: POSIX message queues, Windows mailslots</li>
+        </ul>
+      </div>
+      <div class="theory-card green" style="grid-column:1/-1">
+        <h3>Direct vs Shared Memory</h3>
+        <table class="cmp-table">
+          <tr><th>Property</th><th>Message Passing</th><th>Shared Memory</th></tr>
+          <tr><td>Data exchange</td><td>Explicit send/receive via OS</td><td>Read/write shared region directly</td></tr>
+          <tr><td>Synchronization</td><td>Built into the protocol</td><td>Manual locks/semaphores required</td></tr>
+          <tr><td>Speed</td><td>Slower (system calls per msg)</td><td>Faster (memory access speed)</td></tr>
+          <tr><td>Distributed OK?</td><td>✓ Works across machines</td><td>✗ Same machine only</td></tr>
+          <tr><td>Complexity</td><td>Simpler — no race conditions</td><td>Harder — must manage concurrency</td></tr>
+          <tr><td>Use case</td><td>Microservices, sockets, MPI</td><td>High-performance local IPC</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ FLOW TAB ═══════════════ -->
+  <div id="tab-flow" class="tab-content">
+    <div class="flow-wrapper">
+      <div class="flow-svg-container">
+        <svg viewBox="0 0 700 440" xmlns="http://www.w3.org/2000/svg" width="100%" style="max-width:700px;display:block;margin:0 auto">
+          <defs>
+            <marker id="arrowBlue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#00d4ff"/>
+            </marker>
+            <marker id="arrowOrange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#ff6b35"/>
+            </marker>
+            <marker id="arrowGreen" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#7fff4f"/>
+            </marker>
+          </defs>
+
+          <!-- Title -->
+          <text x="350" y="28" text-anchor="middle" fill="#ffffff" font-family="Orbitron,sans-serif" font-size="14" font-weight="700" letter-spacing="2">MESSAGE PASSING FLOW</text>
+
+          <!-- Process A -->
+          <rect x="20" y="50" width="130" height="340" rx="8" fill="#0d1421" stroke="#00d4ff" stroke-width="1.5"/>
+          <text x="85" y="74" text-anchor="middle" fill="#00d4ff" font-family="Orbitron,sans-serif" font-size="11" font-weight="700" letter-spacing="1">PROCESS A</text>
+          <text x="85" y="90" text-anchor="middle" fill="#5a7a9a" font-size="10">PID: 1001</text>
+
+          <!-- Process B -->
+          <rect x="550" y="50" width="130" height="340" rx="8" fill="#0d1421" stroke="#ff6b35" stroke-width="1.5"/>
+          <text x="615" y="74" text-anchor="middle" fill="#ff6b35" font-family="Orbitron,sans-serif" font-size="11" font-weight="700" letter-spacing="1">PROCESS B</text>
+          <text x="615" y="90" text-anchor="middle" fill="#5a7a9a" font-size="10">PID: 2002</text>
+
+          <!-- OS Kernel box -->
+          <rect x="220" y="50" width="260" height="340" rx="8" fill="#0a1220" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="6 3"/>
+          <text x="350" y="74" text-anchor="middle" fill="#5a7a9a" font-family="Orbitron,sans-serif" font-size="11" letter-spacing="2">OS KERNEL</text>
+
+          <!-- Mailbox in kernel -->
+          <rect x="260" y="160" width="180" height="70" rx="6" fill="#111b2e" stroke="#ffcc00" stroke-width="1.5"/>
+          <text x="350" y="182" text-anchor="middle" fill="#ffcc00" font-family="Orbitron,sans-serif" font-size="10" letter-spacing="1">MAILBOX / QUEUE</text>
+          <rect x="272" y="190" width="36" height="30" rx="3" fill="#1e3a5f"/>
+          <text x="290" y="210" text-anchor="middle" fill="#00d4ff" font-size="10">msg1</text>
+          <rect x="314" y="190" width="36" height="30" rx="3" fill="#1e3a5f"/>
+          <text x="332" y="210" text-anchor="middle" fill="#00d4ff" font-size="10">msg2</text>
+          <rect x="356" y="190" width="36" height="30" rx="3" fill="#1e3a5f" stroke="#ffcc00" stroke-width="1" stroke-dasharray="3 2"/>
+          <text x="374" y="210" text-anchor="middle" fill="#5a7a9a" font-size="10">...</text>
+
+          <!-- Step labels A side -->
+          <rect x="28" y="110" width="114" height="30" rx="4" fill="#1a2a3a"/>
+          <text x="85" y="130" text-anchor="middle" fill="#7fff4f" font-size="12" font-weight="600">① Create msg</text>
+
+          <rect x="28" y="155" width="114" height="30" rx="4" fill="#1a2a3a"/>
+          <text x="85" y="175" text-anchor="middle" fill="#00d4ff" font-size="12" font-weight="600">② send(B, msg)</text>
+
+          <rect x="28" y="280" width="114" height="30" rx="4" fill="#1a2a3a"/>
+          <text x="85" y="300" text-anchor="middle" fill="#7fff4f" font-size="12" font-weight="600">⑤ Continue</text>
+
+          <!-- Step labels B side -->
+          <rect x="558" y="280" width="114" height="30" rx="4" fill="#2a1a0a"/>
+          <text x="615" y="300" text-anchor="middle" fill="#ff6b35" font-size="12" font-weight="600">④ receive(msg)</text>
+
+          <rect x="558" y="340" width="114" height="30" rx="4" fill="#2a1a0a"/>
+          <text x="615" y="360" text-anchor="middle" fill="#7fff4f" font-size="12" font-weight="600">⑤ Process msg</text>
+
+          <!-- Kernel steps -->
+          <rect x="245" y="100" width="210" height="30" rx="4" fill="#131f30"/>
+          <text x="350" y="120" text-anchor="middle" fill="#5a7a9a" font-size="12">③ OS validates &amp; routes</text>
+
+          <rect x="245" y="270" width="210" height="30" rx="4" fill="#131f30"/>
+          <text x="350" y="290" text-anchor="middle" fill="#5a7a9a" font-size="12">③ OS delivers to queue</text>
+
+          <!-- ARROWS -->
+          <!-- A → Kernel: send call -->
+          <line x1="150" y1="170" x2="218" y2="170" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+          <text x="184" y="163" text-anchor="middle" fill="#00d4ff" font-size="9">syscall</text>
+
+          <!-- Kernel → Mailbox -->
+          <line x1="350" y1="132" x2="350" y2="158" stroke="#ffcc00" stroke-width="1.5" marker-end="url(#arrowBlue)" stroke-dasharray="4 2"/>
+
+          <!-- Mailbox → B queue -->
+          <line x1="442" y1="225" x2="548" y2="290" stroke="#ff6b35" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+          <text x="500" y="248" text-anchor="middle" fill="#ff6b35" font-size="9">deliver</text>
+
+          <!-- A continues down -->
+          <line x1="85" y1="187" x2="85" y2="278" stroke="#5a7a9a" stroke-width="1" stroke-dasharray="4 2"/>
+          <text x="60" y="240" fill="#5a7a9a" font-size="9">async:</text>
+          <text x="55" y="252" fill="#5a7a9a" font-size="9">continues</text>
+
+          <!-- Sync block indicator -->
+          <rect x="228" y="330" width="244" height="48" rx="6" fill="rgba(255,204,0,0.06)" stroke="#ffcc00" stroke-width="1" stroke-dasharray="5 3"/>
+          <text x="350" y="353" text-anchor="middle" fill="#ffcc00" font-family="Orbitron,sans-serif" font-size="9" letter-spacing="1">SYNC MODE:</text>
+          <text x="350" y="368" text-anchor="middle" fill="#5a7a9a" font-size="10">sender blocks here until receiver gets msg</text>
+
+          <!-- Legend -->
+          <line x1="228" y1="415" x2="258" y2="415" stroke="#00d4ff" stroke-width="2" marker-end="url(#arrowBlue)"/>
+          <text x="264" y="419" fill="#5a7a9a" font-size="10">send path</text>
+          <line x1="340" y1="415" x2="370" y2="415" stroke="#ff6b35" stroke-width="2" marker-end="url(#arrowOrange)"/>
+          <text x="376" y="419" fill="#5a7a9a" font-size="10">receive path</text>
+          <line x1="448" y1="415" x2="478" y2="415" stroke="#7fff4f" stroke-width="2" marker-end="url(#arrowGreen)"/>
+          <text x="484" y="419" fill="#5a7a9a" font-size="10">continue</text>
+        </svg>
+      </div>
+    </div>
+
+    <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+      <div class="theory-card">
+        <h3>send( ) Semantics</h3>
+        <ul>
+          <li><strong>Blocking send:</strong> waits until message is received</li>
+          <li><strong>Non-blocking send:</strong> puts message in buffer, returns immediately</li>
+          <li>OS kernel copies data from sender address space → message buffer</li>
+          <li>Returns error if queue is full (in bounded buffer mode)</li>
+        </ul>
+      </div>
+      <div class="theory-card orange">
+        <h3>receive( ) Semantics</h3>
+        <ul>
+          <li><strong>Blocking receive:</strong> waits until a message arrives</li>
+          <li><strong>Non-blocking receive:</strong> returns NULL if no message</li>
+          <li>OS kernel copies data from message buffer → receiver address space</li>
+          <li>Message is removed from queue after delivery</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ QUIZ TAB ═══════════════ -->
+  <div id="tab-quiz" class="tab-content">
+    <div class="quiz-wrap">
+      <div class="score-bar" style="margin-bottom:20px">
+        <div>
+          <div class="stat-lbl">YOUR SCORE</div>
+          <div class="score-val" id="quiz-score">0 / 5</div>
+        </div>
+        <button class="btn btn-secondary reset-quiz" onclick="resetQuiz()">Reset Quiz</button>
+      </div>
+
+      <div id="quiz-container"></div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let stats = { sent: 0, recv: 0, queue: 0, dropped: 0 };
+let messageQueue = [];
+let msgCounter = 0;
+let logCounter = 0;
+let isSenderBlocked = false;
+
+function getMode() { return document.getElementById('comm-mode').value; }
+
+function updateMode() {
+  const m = getMode();
+  const [comm, sync] = m.split('-');
+  document.getElementById('channel-mode-label').textContent = comm.toUpperCase();
+  document.getElementById('channel-type-label').textContent = sync === 'sync' ? 'SYNC' : 'ASYNC';
+  log(`Mode changed → ${comm.toUpperCase()} · ${sync.toUpperCase()}`, 'sys');
+  resetDemo(true);
+}
+
+// ═══════════════════════════════════════════
+//  LOGGING
+// ═══════════════════════════════════════════
+function timestamp() {
+  const d = new Date();
+  return `[${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}]`;
+}
+function log(msg, type='info') {
+  const panel = document.getElementById('log-panel');
+  const entry = document.createElement('div');
+  entry.className = `log-entry log-${type}`;
+  entry.innerHTML = `<span class="log-time">${timestamp()}</span><span class="log-msg">${msg}</span>`;
+  panel.appendChild(entry);
+  panel.scrollTop = panel.scrollHeight;
+  logCounter++;
+}
+
+// ═══════════════════════════════════════════
+//  STATS
+// ═══════════════════════════════════════════
+function updateStats() {
+  document.getElementById('stat-sent').textContent   = stats.sent;
+  document.getElementById('stat-recv').textContent   = stats.recv;
+  document.getElementById('stat-queue').textContent  = stats.queue;
+  document.getElementById('stat-dropped').textContent= stats.dropped;
+}
+
+// ═══════════════════════════════════════════
+//  FLYING MESSAGE ANIMATION
+// ═══════════════════════════════════════════
+function flyMessage(text, color, fromEl, toEl, cb) {
+  const fromRect = fromEl.getBoundingClientRect();
+  const toRect   = toEl.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'fly-msg';
+  el.textContent = text;
+  el.style.cssText = `
+    background:${color};color:#0a0f1a;
+    left:${fromRect.right - 10}px;
+    top:${fromRect.top + fromRect.height/2 - 12}px;
+    position:fixed;z-index:1000;
+    font-family:'Share Tech Mono',monospace;font-size:11px;font-weight:700;
+    padding:4px 10px;border-radius:12px;pointer-events:none;
+    transition:left 0.6s cubic-bezier(.4,0,.2,1),top 0.6s cubic-bezier(.4,0,.2,1),opacity 0.2s;
+  `;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      el.style.left = (toRect.left + 10) + 'px';
+      el.style.top  = (toRect.top + toRect.height/2 - 12) + 'px';
+    });
+  });
+  setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => { el.remove(); if(cb) cb(); }, 250);
+  }, 650);
+}
+
+// ═══════════════════════════════════════════
+//  SEND MESSAGE
+// ═══════════════════════════════════════════
+function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const payload = input.value.trim() || `MSG_${msgCounter}`;
+  const mode = getMode();
+  const isSync = mode.includes('sync');
+  const isMailbox = mode.includes('mailbox');
+
+  msgCounter++;
+  const msgId = `M${String(msgCounter).padStart(2,'0')}`;
+  const msgObj = { id: msgId, payload };
+
+  // Animate outbox bubble
+  addBubble('outbox-items', msgId, 'blue');
+  setTimeout(() => removeBubble('outbox-items', msgId), 600);
+
+  stats.sent++;
+  updateStats();
+
+  const senderEl   = document.getElementById('proc-sender');
+  const channelEl  = document.querySelector('.channel-pipe');
+  const receiverEl = document.getElementById('proc-receiver');
+
+  if (isSync) {
+    // Block sender
+    setProcessState('sender', 'BLOCKED', 'state-blocked');
+    document.getElementById('btn-send').disabled = true;
+    isSenderBlocked = true;
+
+    log(`A → send(B, "${payload}") [SYNC — blocking]`, 'send');
+
+    flyMessage(msgId, '#00d4ff', senderEl, channelEl, () => {
+      // put in channel, then deliver
+      messageQueue.push(msgObj);
+      stats.queue++;
+      updateStats();
+      addBubble('inbox-items', msgId, 'orange');
+      setProcessState('receiver', 'RUNNING', 'state-running');
+      log(`Kernel: message "${payload}" queued → mailbox`, 'sys');
+
+      // auto-receive after short delay in sync mode
+      setTimeout(() => {
+        receiveMessage(true, msgObj);
+      }, 800);
+    });
+  } else {
+    // Async: send and continue
+    log(`A → send(B, "${payload}") [ASYNC — non-blocking]`, 'send');
+    flyMessage(msgId, '#00d4ff', senderEl, channelEl, () => {
+      messageQueue.push(msgObj);
+      stats.queue++;
+      updateStats();
+      addBubble('inbox-items', msgId, 'orange');
+      setProcessState('receiver', 'RUNNING', 'state-running');
+      log(`Kernel: message "${payload}" buffered in queue`, 'sys');
+      document.getElementById('btn-receive').disabled = false;
+    });
+    log(`A: continues execution (non-blocking)`, 'info');
+  }
+
+  input.value = '';
+}
+
+// ═══════════════════════════════════════════
+//  RECEIVE MESSAGE
+// ═══════════════════════════════════════════
+function receiveMessage(auto, forceMsg) {
+  if (messageQueue.length === 0) {
+    log('B: receive() — queue empty, nothing to receive', 'error');
+    return;
+  }
+  const msg = forceMsg || messageQueue.shift();
+  if (!forceMsg) {
+    const idx = messageQueue.indexOf(msg);
+    if(idx > -1) messageQueue.splice(idx, 1);
+    else messageQueue.shift();
+  } else {
+    messageQueue = messageQueue.filter(m => m.id !== msg.id);
+  }
+
+  stats.queue = messageQueue.length;
+  stats.recv++;
+  updateStats();
+
+  removeBubble('inbox-items', msg.id);
+  setProcessState('receiver', 'RUNNING', 'state-running');
+
+  log(`B ← receive() → "${msg.payload}" [${msg.id}]`, 'recv');
+  log(`B: processing message payload`, 'info');
+
+  // Unblock sender if sync
+  if (isSenderBlocked) {
+    isSenderBlocked = false;
+    setTimeout(() => {
+      setProcessState('sender', 'RUNNING', 'state-running');
+      document.getElementById('btn-send').disabled = false;
+      log(`A: unblocked — send() returned successfully`, 'sys');
+    }, 400);
+  }
+
+  if (messageQueue.length === 0) {
+    document.getElementById('btn-receive').disabled = true;
+    setProcessState('receiver', 'WAITING', 'state-waiting');
+  }
+}
+
+// ═══════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════
+function setProcessState(proc, label, cls) {
+  const el = document.getElementById(`state-${proc}`);
+  el.textContent = label;
+  el.className = `process-state ${cls}`;
+}
+function addBubble(containerId, id, color) {
+  const c = document.getElementById(containerId);
+  const b = document.createElement('div');
+  b.className = `msg-bubble${color === 'orange' ? ' orange' : ''}`;
+  b.id = `bubble-${containerId}-${id}`;
+  b.textContent = id;
+  c.appendChild(b);
+}
+function removeBubble(containerId, id) {
+  const el = document.getElementById(`bubble-${containerId}-${id}`);
+  if(el) el.remove();
+}
+
+function resetDemo(silent) {
+  messageQueue = [];
+  msgCounter = 0;
+  stats = { sent: 0, recv: 0, queue: 0, dropped: 0 };
+  isSenderBlocked = false;
+  updateStats();
+  document.getElementById('outbox-items').innerHTML = '';
+  document.getElementById('inbox-items').innerHTML = '';
+  setProcessState('sender', 'RUNNING', 'state-running');
+  setProcessState('receiver', 'WAITING', 'state-waiting');
+  document.getElementById('btn-send').disabled = false;
+  document.getElementById('btn-receive').disabled = true;
+  document.getElementById('msg-input').value = 'Hello World';
+  if(!silent) {
+    document.getElementById('log-panel').innerHTML = '';
+    log('Demo reset. Ready.', 'sys');
+  }
+}
+
+// ═══════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+//  QUIZ
+// ═══════════════════════════════════════════
+const quizData = [
+  {
+    q: "In the Message Passing Model, processes communicate by…",
+    opts: [
+      "Sharing a common memory region directly",
+      "Sending and receiving messages via the OS kernel",
+      "Accessing the same file on disk",
+      "Using hardware interrupts directly"
+    ],
+    ans: 1,
+    explain: "Message passing relies on the OS kernel to transfer messages between processes — no shared memory is needed."
+  },
+  {
+    q: "Which statement best describes Blocking (Synchronous) send()?",
+    opts: [
+      "The sender drops the message in a buffer and immediately continues executing",
+      "The sender waits until the receiver has called receive()",
+      "The OS discards the message if the receiver is busy",
+      "Only one message can ever be in transit at a time"
+    ],
+    ans: 1,
+    explain: "Blocking send causes the sender to block (pause) until the receiver has received the message — they rendezvous."
+  },
+  {
+    q: "A mailbox (indirect communication) differs from direct communication because…",
+    opts: [
+      "Only one process can use a mailbox at a time",
+      "It requires shared memory",
+      "Messages are sent to a named port/mailbox rather than directly to a process",
+      "It only works synchronously"
+    ],
+    ans: 2,
+    explain: "In indirect communication, processes send to/receive from a named mailbox — not to a specific process. Multiple processes can share the same mailbox."
+  },
+  {
+    q: "Which advantage does message passing have over shared memory IPC?",
+    opts: [
+      "It is always faster because no system calls are made",
+      "It works across machines (distributed systems) without modification",
+      "It requires no OS involvement whatsoever",
+      "It allows unlimited data transfer in a single call"
+    ],
+    ans: 1,
+    explain: "Message passing can work over networks (e.g. MPI, sockets), making it ideal for distributed systems. Shared memory only works on the same machine."
+  },
+  {
+    q: "What happens with Non-Blocking (Asynchronous) receive() when the message queue is empty?",
+    opts: [
+      "The receiver is blocked until a message arrives",
+      "The OS automatically generates a dummy message",
+      "The call returns immediately, typically with NULL or an error",
+      "The kernel queues the receive request and fulfills it later"
+    ],
+    ans: 2,
+    explain: "Non-blocking receive() returns immediately — if the queue is empty it returns NULL (or an error code) rather than suspending the process."
+  }
+];
+
+let quizAnswered = [false, false, false, false, false];
+let quizScore = 0;
+
+function buildQuiz() {
+  const container = document.getElementById('quiz-container');
+  container.innerHTML = '';
+  quizData.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'quiz-question';
+    div.innerHTML = `
+      <div class="q-num">QUESTION ${i+1} OF ${quizData.length}</div>
+      <div class="q-text">${item.q}</div>
+      <div class="q-options">
+        ${item.opts.map((o,j) => `
+          <div class="q-opt" id="opt-${i}-${j}" onclick="answerQ(${i},${j})">
+            <span class="q-opt-key">${String.fromCharCode(65+j)}</span>
+            ${o}
+          </div>
+        `).join('')}
+      </div>
+      <div class="q-feedback" id="fb-${i}"></div>
+    `;
+    container.appendChild(div);
+  });
+  updateQuizScore();
+}
+
+function answerQ(qi, oi) {
+  if(quizAnswered[qi]) return;
+  quizAnswered[qi] = true;
+  const correct = quizData[qi].ans === oi;
+  if(correct) quizScore++;
+  updateQuizScore();
+
+  // Mark options
+  quizData[qi].opts.forEach((_, j) => {
+    const el = document.getElementById(`opt-${qi}-${j}`);
+    el.classList.add('answered');
+    if(j === quizData[qi].ans) el.classList.add('correct');
+    else if(j === oi && !correct) el.classList.add('wrong');
+  });
+
+  const fb = document.getElementById(`fb-${qi}`);
+  fb.className = `q-feedback show ${correct ? 'ok' : 'bad'}`;
+  fb.textContent = (correct ? '✓ Correct! — ' : '✗ Not quite. — ') + quizData[qi].explain;
+}
+
+function updateQuizScore() {
+  document.getElementById('quiz-score').textContent = `${quizScore} / ${quizData.length}`;
+}
+
+function resetQuiz() {
+  quizAnswered = [false,false,false,false,false];
+  quizScore = 0;
+  buildQuiz();
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+buildQuiz();
+log('System ready. Select a mode and click Send to simulate IPC message passing.', 'sys');
+</script>
+</body>
+</html>

@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sleep() — System Call | OS Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Fraunces:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  :root {
+    --bg: #0c0e13;
+    --surface: #13161d;
+    --surface2: #1a1e28;
+    --border: #252a36;
+    --text: #e2e4ea;
+    --text-dim: #8a8fa0;
+    --accent: #6ea8fe;
+    --accent-glow: rgba(110,168,254,0.15);
+    --green: #63e6a0;
+    --orange: #f0a860;
+    --red: #f06868;
+    --purple: #b48efe;
+    --code-bg: #0a0c10;
+    --radius: 12px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    padding: 2rem;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 40%, rgba(110,168,254,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 30% at 70% 60%, rgba(180,142,254,0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: .4rem 1.2rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .8rem;
+    color: var(--accent);
+    letter-spacing: .04em;
+    margin-bottom: 2rem;
+    animation: fadeDown .8s ease-out;
+  }
+  .hero-badge .dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: clamp(3rem, 8vw, 6.5rem);
+    line-height: 1;
+    letter-spacing: -.03em;
+    margin-bottom: 1rem;
+    animation: fadeDown .8s ease-out .1s both;
+  }
+  .hero h1 span {
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-sub {
+    font-size: 1.2rem;
+    color: var(--text-dim);
+    max-width: 540px;
+    animation: fadeDown .8s ease-out .2s both;
+  }
+
+  .scroll-cue {
+    position: absolute;
+    bottom: 2rem;
+    animation: bounce 2s infinite;
+    color: var(--text-dim);
+    font-size: 1.4rem;
+  }
+
+  /* ─── SECTIONS ─── */
+  .section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 5rem 1.5rem;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .15em;
+    color: var(--accent);
+    margin-bottom: .75rem;
+  }
+
+  .section h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .section p {
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    margin-bottom: 1.25rem;
+    max-width: 680px;
+  }
+
+  /* ─── CODE BLOCKS ─── */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .88rem;
+    line-height: 1.8;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    position: relative;
+  }
+  .code-block .line-kw { color: #c792ea; }
+  .code-block .line-fn { color: #82aaff; }
+  .code-block .line-str { color: #c3e88d; }
+  .code-block .line-num { color: #f78c6c; }
+  .code-block .line-cm { color: #546e7a; font-style: italic; }
+  .code-block .line-type { color: #ffcb6b; }
+  .code-block .line-inc { color: #89ddff; }
+
+  .code-label {
+    position: absolute;
+    top: .6rem;
+    right: .8rem;
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text-dim);
+    background: var(--surface);
+    padding: .15rem .5rem;
+    border-radius: 4px;
+  }
+
+  /* ─── INFO CARDS ─── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    transition: border-color .3s, transform .3s;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+  }
+  .card h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .95rem;
+    margin-bottom: .5rem;
+    color: var(--text);
+  }
+  .card p {
+    font-size: .9rem;
+    color: var(--text-dim);
+    margin: 0;
+  }
+
+  /* ─── TIMELINE DIAGRAM ─── */
+  .timeline-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin: 2rem 0;
+    overflow-x: auto;
+  }
+  .timeline-diagram h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .85rem;
+    color: var(--text-dim);
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  .tl-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: .5rem;
+  }
+  .tl-label {
+    width: 80px;
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .75rem;
+    color: var(--text-dim);
+    text-align: right;
+    padding-right: 1rem;
+  }
+  .tl-bar-track {
+    flex: 1;
+    height: 36px;
+    display: flex;
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .tl-seg {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .7rem;
+    font-weight: 600;
+    color: #000;
+    transition: opacity .3s;
+  }
+  .tl-seg.running { background: var(--green); }
+  .tl-seg.sleeping { background: var(--orange); opacity: .75; }
+  .tl-seg.blocked { background: var(--red); opacity: .6; }
+  .tl-seg.idle { background: var(--border); }
+
+  .tl-legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+  .tl-legend-item {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .78rem;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .tl-legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+  }
+
+  /* ─── INTERACTIVE DEMO ─── */
+  .demo-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin: 2rem 0;
+  }
+
+  .demo-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+
+  .demo-controls label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .8rem;
+    color: var(--text-dim);
+  }
+
+  .demo-controls input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--bg);
+    height: 6px;
+    border-radius: 3px;
+    width: 150px;
+    outline: none;
+  }
+  .demo-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  .btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .82rem;
+    font-weight: 600;
+    padding: .6rem 1.4rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .2s, transform .15s;
+  }
+  .btn:active { transform: scale(.96); }
+  .btn-primary {
+    background: var(--accent);
+    color: #0c0e13;
+  }
+  .btn-primary:hover { background: #8dbbfe; }
+  .btn-primary:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .demo-display {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .process-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .proc-icon {
+    width: 48px; height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: .9rem;
+    flex-shrink: 0;
+    transition: background .4s, border-color .4s;
+    border: 2px solid;
+  }
+  .proc-icon.running {
+    background: rgba(99,230,160,.12);
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .proc-icon.sleeping {
+    background: rgba(240,168,96,.1);
+    border-color: var(--orange);
+    color: var(--orange);
+  }
+  .proc-icon.done {
+    background: rgba(110,168,254,.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .proc-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+  }
+  .proc-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .75rem;
+    color: var(--text-dim);
+  }
+  .proc-bar-outer {
+    height: 10px;
+    background: var(--bg);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .proc-bar-inner {
+    height: 100%;
+    border-radius: 5px;
+    width: 0%;
+    transition: width .3s linear, background .4s;
+  }
+  .proc-bar-inner.running { background: var(--green); }
+  .proc-bar-inner.sleeping { background: var(--orange); }
+  .proc-bar-inner.done { background: var(--accent); }
+
+  .demo-log {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem;
+    line-height: 1.7;
+    margin-top: 1rem;
+  }
+  .demo-log .log-time { color: var(--text-dim); }
+  .demo-log .log-run { color: var(--green); }
+  .demo-log .log-sleep { color: var(--orange); }
+  .demo-log .log-wake { color: var(--accent); }
+
+  /* ─── TABLE ─── */
+  .info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: .92rem;
+  }
+  .info-table th {
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-dim);
+    padding: .75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .info-table td {
+    padding: .75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .info-table td:first-child {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    font-size: .82rem;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: .3; }
+  }
+  @keyframes bounce {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(6px); }
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 600px) {
+    .section { padding: 3rem 1rem; }
+    .demo-controls { flex-direction: column; align-items: flex-start; }
+    .tl-label { width: 60px; font-size: .65rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════ HERO ════════════════════ -->
+<header class="hero">
+  <div class="hero-badge"><span class="dot"></span> Linux System Call</div>
+  <h1><span>sleep()</span></h1>
+  <p class="hero-sub">Pause process execution for a specified number of seconds — one of the simplest yet most essential system calls in Unix/Linux.</p>
+  <div class="scroll-cue">↓</div>
+</header>
+
+<!-- ════════════════════ WHAT IS SLEEP ════════════════════ -->
+<section class="section">
+  <div class="section-label">01 — Overview</div>
+  <h2>What is <code>sleep()</code>?</h2>
+  <p>
+    The <code>sleep()</code> function causes the calling process (or thread) to be <strong>suspended</strong>
+    from execution for a given number of seconds. During this time, the process transitions from the
+    <strong>Running</strong> state to the <strong>Sleeping (Waiting)</strong> state. The operating system's
+    scheduler removes it from the CPU and gives that time to other processes.
+  </p>
+  <p>
+    Once the specified duration elapses, the kernel moves the process back to the <strong>Ready</strong>
+    queue, and it resumes execution when the scheduler next picks it up.
+  </p>
+  <p>
+    It is defined in <code>&lt;unistd.h&gt;</code> and its signature is:
+  </p>
+
+  <div class="code-block">
+    <span class="code-label">C</span>
+    <span class="line-inc">#include</span> <span class="line-str">&lt;unistd.h&gt;</span><br><br>
+    <span class="line-type">unsigned int</span> <span class="line-fn">sleep</span>(<span class="line-type">unsigned int</span> seconds);<br><br>
+    <span class="line-cm">// Returns: 0 if the full time elapsed,</span><br>
+    <span class="line-cm">//          or the number of unslept seconds if interrupted by a signal.</span>
+  </div>
+</section>
+
+<!-- ════════════════════ HOW IT WORKS ════════════════════ -->
+<section class="section">
+  <div class="section-label">02 — Mechanism</div>
+  <h2>How Does It Work Internally?</h2>
+  <p>
+    When a process calls <code>sleep(n)</code>, the following happens inside the operating system:
+  </p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>① Trap to Kernel</h3>
+      <p>The process issues a system call, switching from User Mode to Kernel Mode via a software interrupt.</p>
+    </div>
+    <div class="card">
+      <h3>② Set Timer</h3>
+      <p>The kernel sets up an internal timer (often using <code>nanosleep()</code> underneath) for the requested duration.</p>
+    </div>
+    <div class="card">
+      <h3>③ Block Process</h3>
+      <p>The process is moved to the <strong>Waiting</strong> state. The scheduler picks another ready process to run on the CPU.</p>
+    </div>
+    <div class="card">
+      <h3>④ Timer Expires</h3>
+      <p>When the timer fires, the kernel moves the process back to the <strong>Ready</strong> queue. It resumes when scheduled.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ TIMELINE ════════════════════ -->
+<section class="section">
+  <div class="section-label">03 — Visualization</div>
+  <h2>Process State Timeline</h2>
+  <p>This diagram shows how <code>sleep(3)</code> affects a single process alongside other processes sharing the CPU.</p>
+
+  <div class="timeline-diagram">
+    <h3>Time → (each block ≈ 1 second)</h3>
+
+    <div class="tl-row">
+      <div class="tl-label">Process A</div>
+      <div class="tl-bar-track">
+        <div class="tl-seg running" style="width:20%">RUN</div>
+        <div class="tl-seg sleeping" style="width:30%">💤 sleep(3)</div>
+        <div class="tl-seg running" style="width:20%">RUN</div>
+        <div class="tl-seg running" style="width:30%">RUN</div>
+      </div>
+    </div>
+
+    <div class="tl-row">
+      <div class="tl-label">Process B</div>
+      <div class="tl-bar-track">
+        <div class="tl-seg idle" style="width:20%"></div>
+        <div class="tl-seg running" style="width:30%">RUN</div>
+        <div class="tl-seg idle" style="width:20%"></div>
+        <div class="tl-seg idle" style="width:30%"></div>
+      </div>
+    </div>
+
+    <div class="tl-row">
+      <div class="tl-label">CPU</div>
+      <div class="tl-bar-track">
+        <div class="tl-seg running" style="width:20%">A</div>
+        <div class="tl-seg running" style="width:30%">B</div>
+        <div class="tl-seg running" style="width:20%">A</div>
+        <div class="tl-seg running" style="width:30%">A</div>
+      </div>
+    </div>
+
+    <div class="tl-legend">
+      <div class="tl-legend-item"><div class="tl-legend-dot" style="background:var(--green)"></div> Running</div>
+      <div class="tl-legend-item"><div class="tl-legend-dot" style="background:var(--orange)"></div> Sleeping</div>
+      <div class="tl-legend-item"><div class="tl-legend-dot" style="background:var(--border)"></div> Idle / Waiting</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ EXAMPLE ════════════════════ -->
+<section class="section">
+  <div class="section-label">04 — Code Example</div>
+  <h2>A Simple C Program Using <code>sleep()</code></h2>
+
+  <div class="code-block">
+    <span class="code-label">example.c</span>
+    <span class="line-inc">#include</span> <span class="line-str">&lt;stdio.h&gt;</span><br>
+    <span class="line-inc">#include</span> <span class="line-str">&lt;unistd.h&gt;</span><br><br>
+    <span class="line-type">int</span> <span class="line-fn">main</span>() {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="line-fn">printf</span>(<span class="line-str">"Starting... PID = %d\n"</span>, <span class="line-fn">getpid</span>());<br><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="line-kw">for</span> (<span class="line-type">int</span> i = <span class="line-num">1</span>; i &lt;= <span class="line-num">3</span>; i++) {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="line-fn">printf</span>(<span class="line-str">"Doing work... iteration %d\n"</span>, i);<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="line-fn">sleep</span>(<span class="line-num">2</span>); &nbsp;<span class="line-cm">// pause for 2 seconds</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;}<br><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="line-fn">printf</span>(<span class="line-str">"Done!\n"</span>);<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="line-kw">return</span> <span class="line-num">0</span>;<br>
+    }
+  </div>
+
+  <p>
+    Compile and run with <code>gcc example.c -o example && ./example</code>. You will see a 2-second
+    pause between each iteration as the process sleeps.
+  </p>
+</section>
+
+<!-- ════════════════════ INTERACTIVE DEMO ════════════════════ -->
+<section class="section">
+  <div class="section-label">05 — Interactive Demo</div>
+  <h2>Try It: Simulate <code>sleep()</code></h2>
+  <p>Adjust the sleep duration and hit <strong>Run</strong> to watch a simulated process work, sleep, and resume — just like the real system call.</p>
+
+  <div class="demo-box">
+    <div class="demo-controls">
+      <label>sleep(<span id="sleepVal">3</span>)</label>
+      <input type="range" id="sleepSlider" min="1" max="8" value="3">
+      <button class="btn btn-primary" id="runBtn" onclick="startDemo()">▶ Run Process</button>
+      <button class="btn btn-secondary" onclick="resetDemo()">↺ Reset</button>
+    </div>
+
+    <div class="demo-display">
+      <div class="process-row">
+        <div class="proc-icon running" id="procIcon">P1</div>
+        <div class="proc-bar-wrap">
+          <div class="proc-status" id="procStatus">Ready</div>
+          <div class="proc-bar-outer">
+            <div class="proc-bar-inner running" id="procBar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-log" id="logBox">
+      <span class="log-time">[waiting]</span> Process P1 created. Press Run to start.<br>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ VARIANTS ════════════════════ -->
+<section class="section">
+  <div class="section-label">06 — Related Functions</div>
+  <h2>Variants &amp; Alternatives</h2>
+
+  <table class="info-table">
+    <thead>
+      <tr><th>Function</th><th>Resolution</th><th>Header</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>sleep()</td>
+        <td>Seconds</td>
+        <td>&lt;unistd.h&gt;</td>
+        <td>Simplest; POSIX standard.</td>
+      </tr>
+      <tr>
+        <td>usleep()</td>
+        <td>Microseconds</td>
+        <td>&lt;unistd.h&gt;</td>
+        <td>Deprecated in POSIX.1-2008; use nanosleep instead.</td>
+      </tr>
+      <tr>
+        <td>nanosleep()</td>
+        <td>Nanoseconds</td>
+        <td>&lt;time.h&gt;</td>
+        <td>High precision; preferred for fine-grained delays.</td>
+      </tr>
+      <tr>
+        <td>alarm()</td>
+        <td>Seconds</td>
+        <td>&lt;unistd.h&gt;</td>
+        <td>Schedules a SIGALRM signal instead of blocking.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ════════════════════ KEY POINTS ════════════════════ -->
+<section class="section">
+  <div class="section-label">07 — Key Takeaways</div>
+  <h2>Things to Remember</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h3>Non-busy Wait</h3>
+      <p><code>sleep()</code> does <em>not</em> spin-loop on the CPU. The process is truly removed from the run queue, freeing the CPU for other work.</p>
+    </div>
+    <div class="card">
+      <h3>Signal Interruption</h3>
+      <p>A signal (e.g., <code>SIGINT</code>) can wake the process early. The return value tells you how many seconds were left unslept.</p>
+    </div>
+    <div class="card">
+      <h3>Minimum Guarantee</h3>
+      <p>The actual sleep time may be <em>slightly longer</em> than requested due to scheduling latency, but never shorter (unless interrupted).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ FOOTER ════════════════════ -->
+<footer>
+  Operating Systems — Interactive Web Portfolio &middot; Task #27: <code>sleep()</code>
+</footer>
+
+<!-- ════════════════════ JS ════════════════════ -->
+<script>
+  // Slider
+  const slider = document.getElementById('sleepSlider');
+  const valSpan = document.getElementById('sleepVal');
+  slider.addEventListener('input', () => valSpan.textContent = slider.value);
+
+  // Demo state
+  let running = false;
+  let timers = [];
+
+  function log(msg, cls = '') {
+    const box = document.getElementById('logBox');
+    const now = new Date();
+    const t = now.toLocaleTimeString('en-GB');
+    box.innerHTML += `<span class="log-time">[${t}]</span> <span class="${cls}">${msg}</span><br>`;
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function setProc(state, statusText, barPct) {
+    const icon = document.getElementById('procIcon');
+    const status = document.getElementById('procStatus');
+    const bar = document.getElementById('procBar');
+    icon.className = 'proc-icon ' + state;
+    bar.className = 'proc-bar-inner ' + state;
+    status.textContent = statusText;
+    bar.style.width = barPct + '%';
+  }
+
+  function startDemo() {
+    if (running) return;
+    running = true;
+    document.getElementById('runBtn').disabled = true;
+    const sleepSec = parseInt(slider.value);
+    const workBeforeSec = 2;
+    const workAfterSec = 1;
+    const total = workBeforeSec + sleepSec + workAfterSec;
+
+    // Phase 1 — Working
+    setProc('running', 'Running — doing work...', 0);
+    log('Process P1 started — state: RUNNING', 'log-run');
+
+    let elapsed = 0;
+
+    // Work phase
+    for (let i = 1; i <= workBeforeSec; i++) {
+      timers.push(setTimeout(() => {
+        elapsed++;
+        setProc('running', `Running — working (${i}/${workBeforeSec}s)`, (elapsed / total) * 100);
+        log(`Working... second ${i}`, 'log-run');
+      }, i * 1000));
+    }
+
+    // Sleep phase
+    const sleepStart = workBeforeSec;
+    timers.push(setTimeout(() => {
+      setProc('sleeping', `Sleeping — sleep(${sleepSec}) called`, (sleepStart / total) * 100);
+      log(`Called sleep(${sleepSec}) — state: SLEEPING 💤`, 'log-sleep');
+    }, (sleepStart + 0.05) * 1000));
+
+    for (let i = 1; i <= sleepSec; i++) {
+      timers.push(setTimeout(() => {
+        elapsed = sleepStart + i;
+        const remaining = sleepSec - i;
+        setProc('sleeping', `Sleeping — ${remaining}s remaining...`, (elapsed / total) * 100);
+        if (remaining > 0) log(`💤 Still sleeping... ${remaining}s left`, 'log-sleep');
+      }, (sleepStart + i) * 1000));
+    }
+
+    // Wake up
+    const wakeTime = sleepStart + sleepSec;
+    timers.push(setTimeout(() => {
+      setProc('running', 'Woke up — resuming work!', (wakeTime / total) * 100);
+      log('⏰ Timer expired — state: READY → RUNNING', 'log-wake');
+    }, (wakeTime + 0.05) * 1000));
+
+    // Work after
+    for (let i = 1; i <= workAfterSec; i++) {
+      timers.push(setTimeout(() => {
+        elapsed = wakeTime + i;
+        setProc('running', `Running — finishing up (${i}/${workAfterSec}s)`, (elapsed / total) * 100);
+        log('Finishing work...', 'log-run');
+      }, (wakeTime + i) * 1000));
+    }
+
+    // Done
+    timers.push(setTimeout(() => {
+      setProc('done', 'Process completed ✓', 100);
+      log('Process P1 finished — returned 0. ✓', 'log-wake');
+      running = false;
+      document.getElementById('runBtn').disabled = false;
+    }, (total + 0.2) * 1000));
+  }
+
+  function resetDemo() {
+    timers.forEach(t => clearTimeout(t));
+    timers = [];
+    running = false;
+    document.getElementById('runBtn').disabled = false;
+    setProc('running', 'Ready', 0);
+    document.getElementById('logBox').innerHTML =
+      '<span class="log-time">[waiting]</span> Process P1 created. Press Run to start.<br>';
+  }
+</script>
+
+</body>
+</html>

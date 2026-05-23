@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>exit() System Call Simulator</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:#0b0613;
+    color:#ffd8f3;
+    font-family:'Share Tech Mono', monospace;
+    padding:30px;
+    min-height:100vh;
+}
+
+h1{
+    text-align:center;
+    color:#ff4fd8;
+    font-size:48px;
+    margin-bottom:15px;
+    text-shadow:0 0 15px #ff4fd8;
+}
+
+.subtitle{
+    text-align:center;
+    max-width:950px;
+    margin:auto;
+    margin-bottom:35px;
+    line-height:1.8;
+    color:#ffc9eb;
+}
+
+.container{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:25px;
+}
+
+.panel{
+    background:#140814;
+    border:2px solid #ff4fd8;
+    border-radius:18px;
+    padding:25px;
+    box-shadow:0 0 20px rgba(255,79,216,0.2);
+}
+
+.panel-title{
+    color:#ff79e6;
+    font-size:28px;
+    margin-bottom:20px;
+}
+
+.process-box{
+    background:#1b1023;
+    border:2px solid #ff4fd8;
+    border-radius:15px;
+    padding:25px;
+    position:relative;
+    min-height:320px;
+    animation:glow 1.5s infinite;
+}
+
+@keyframes glow{
+    0%{
+        box-shadow:0 0 10px #ff4fd8;
+    }
+
+    50%{
+        box-shadow:0 0 25px #ff4fd8;
+    }
+
+    100%{
+        box-shadow:0 0 10px #ff4fd8;
+    }
+}
+
+.status-badge{
+    position:absolute;
+    top:20px;
+    right:20px;
+    background:#ff4fd8;
+    color:black;
+    padding:8px 14px;
+    border-radius:8px;
+    font-weight:bold;
+}
+
+.status-badge.dead{
+    background:#821243;
+    color:white;
+}
+
+.process-info{
+    margin-top:45px;
+    line-height:2.3;
+    font-size:20px;
+}
+
+.highlight{
+    color:#ff79e6;
+}
+
+.buttons{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+    gap:15px;
+    margin-top:25px;
+    width:100%;
+}
+
+button{
+    width:100%;
+    padding:14px 16px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:15px;
+    font-family:'Share Tech Mono', monospace;
+    font-weight:bold;
+    transition:0.3s;
+}
+
+button:hover{
+    transform:translateY(-3px);
+    box-shadow:0 0 15px #ff4fd8;
+}
+
+.run-btn{
+    background:#ff4fd8;
+    color:black;
+}
+
+.exit0-btn{
+    background:#ff79e6;
+    color:black;
+}
+
+.exit1-btn{
+    background:#ff2f92;
+    color:white;
+}
+
+.zombie-btn{
+    background:#5b174b;
+    color:white;
+}
+
+.reset-btn{
+    background:#ffd8f3;
+    color:black;
+}
+
+.flow{
+    margin-top:25px;
+    padding-top:20px;
+    border-top:1px solid #ff4fd8;
+    line-height:2;
+    color:#ffc9eb;
+}
+
+.terminal{
+    background:black;
+    color:#ff79e6;
+    border:2px solid #ff4fd8;
+    border-radius:12px;
+    padding:20px;
+    height:500px;
+    overflow-y:auto;
+    line-height:1.9;
+    font-size:16px;
+}
+
+.code-box{
+    margin-top:25px;
+    background:#0b0613;
+    border:1px solid #ff4fd8;
+    border-radius:12px;
+    padding:18px;
+    color:#ffb6ea;
+    overflow-x:auto;
+}
+
+@media(max-width:950px){
+
+    .container{
+        grid-template-columns:1fr;
+    }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>exit() SYSTEM CALL</h1>
+
+<p class="subtitle">
+This interactive Operating System simulator demonstrates how the
+exit() system call terminates a process, switches to kernel mode,
+releases resources, and returns the exit status to the parent process.
+</p>
+
+<div class="container">
+
+    <!-- LEFT PANEL -->
+    <div class="panel">
+
+        <h2 class="panel-title">PROCESS MANAGER</h2>
+
+        <div class="process-box" id="processBox">
+
+            <div class="status-badge" id="statusBadge">
+                RUNNING
+            </div>
+
+            <div class="process-info">
+
+                <p>PID:
+                    <span class="highlight">2048</span>
+                </p>
+
+                <p>STATE:
+                    <span class="highlight" id="stateText">RUNNING</span>
+                </p>
+
+                <p>MEMORY:
+                    <span class="highlight" id="memoryText">ALLOCATED</span>
+                </p>
+
+                <p>CPU:
+                    <span class="highlight" id="cpuText">ACTIVE</span>
+                </p>
+
+                <p>FILES:
+                    <span class="highlight" id="fileText">OPEN</span>
+                </p>
+
+                <p>PARENT PID:
+                    <span class="highlight">1024</span>
+                </p>
+
+                <p>EXIT STATUS:
+                    <span class="highlight" id="exitCode">N/A</span>
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="buttons">
+
+            <button class="run-btn" onclick="startProcess()">
+                Run Process
+            </button>
+
+            <button class="exit0-btn" onclick="exitProcess(0)">
+                exit(0)
+            </button>
+
+            <button class="exit1-btn" onclick="exitProcess(1)">
+                exit(1)
+            </button>
+
+            <button class="zombie-btn" onclick="createZombie()">
+                Zombie Process
+            </button>
+
+            <button class="reset-btn" onclick="resetSystem()">
+                Reset
+            </button>
+
+        </div>
+
+        <div class="flow">
+
+            USER PROGRAM <br>
+            ↓ <br>
+            exit() SYSTEM CALL <br>
+            ↓ <br>
+            KERNEL MODE <br>
+            ↓ <br>
+            RESOURCE CLEANUP <br>
+            ↓ <br>
+            PARENT PROCESS NOTIFIED <br>
+            ↓ <br>
+            PROCESS TERMINATED
+
+        </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+
+        <h2 class="panel-title">KERNEL TERMINAL</h2>
+
+        <div class="terminal" id="terminal">
+
+            root@kernel:~$ ./program <br>
+            Program initialized... <br>
+            Process state: RUNNING <br><br>
+
+        </div>
+
+        <div class="code-box">
+
+<pre>
+#include &lt;stdlib.h&gt;
+
+int main() {
+
+    printf("Program Running...");
+
+    exit(0);
+
+}
+</pre>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+const terminal = document.getElementById("terminal");
+
+function addLog(message){
+
+    terminal.innerHTML += message + "<br>";
+
+    terminal.scrollTop = terminal.scrollHeight;
+}
+
+function startProcess(){
+
+    document.getElementById("stateText").innerText = "RUNNING";
+    document.getElementById("memoryText").innerText = "ALLOCATED";
+    document.getElementById("cpuText").innerText = "ACTIVE";
+    document.getElementById("fileText").innerText = "OPEN";
+    document.getElementById("exitCode").innerText = "N/A";
+
+    const badge = document.getElementById("statusBadge");
+
+    badge.innerText = "RUNNING";
+
+    badge.classList.remove("dead");
+
+    addLog("root@kernel:~$ ./program");
+    addLog("Program execution started...");
+    addLog("PID 2048 assigned to CPU.");
+    addLog("Process entered RUNNING state.");
+    addLog("");
+
+}
+
+function exitProcess(code){
+
+    addLog("Process invoked exit(" + code + ")");
+
+    setTimeout(() => {
+
+        addLog("Switching to KERNEL MODE...");
+
+    }, 1000);
+
+    setTimeout(() => {
+
+        addLog("Closing open file descriptors...");
+        document.getElementById("fileText").innerText = "CLOSED";
+
+    }, 2000);
+
+    setTimeout(() => {
+
+        addLog("Releasing allocated memory...");
+        document.getElementById("memoryText").innerText = "RELEASED";
+
+    }, 3000);
+
+    setTimeout(() => {
+
+        addLog("Stopping CPU execution...");
+        document.getElementById("cpuText").innerText = "STOPPED";
+
+    }, 4000);
+
+    setTimeout(() => {
+
+        addLog("Sending exit status to parent process...");
+        document.getElementById("exitCode").innerText = code;
+
+    }, 5000);
+
+    setTimeout(() => {
+
+        addLog("Removing process from process table...");
+        addLog("Process terminated.");
+        addLog("");
+
+        document.getElementById("stateText").innerText = "TERMINATED";
+
+        const badge = document.getElementById("statusBadge");
+
+        badge.innerText = "TERMINATED";
+
+        badge.classList.add("dead");
+
+    }, 6000);
+
+}
+
+function createZombie(){
+
+    addLog("Child process exited...");
+    addLog("Parent process did NOT collect status.");
+    addLog("Process entered ZOMBIE state.");
+    addLog("");
+
+    document.getElementById("stateText").innerText = "ZOMBIE";
+
+    const badge = document.getElementById("statusBadge");
+
+    badge.innerText = "ZOMBIE";
+
+    badge.classList.add("dead");
+
+}
+
+function resetSystem(){
+
+    terminal.innerHTML = `
+        root@kernel:~$ System reset complete...<br><br>
+    `;
+
+    document.getElementById("stateText").innerText = "RUNNING";
+    document.getElementById("memoryText").innerText = "ALLOCATED";
+    document.getElementById("cpuText").innerText = "ACTIVE";
+    document.getElementById("fileText").innerText = "OPEN";
+    document.getElementById("exitCode").innerText = "N/A";
+
+    const badge = document.getElementById("statusBadge");
+
+    badge.innerText = "RUNNING";
+
+    badge.classList.remove("dead");
+
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Priority CPU Scheduler</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1a1320;
+    --surface: #221929;
+    --surface2: #2a1f33;
+    --border: #3d2f4d;
+    --accent: #c084fc;
+    --accent2: #a855f7;
+    --accent3: #f0abfc;
+    --text: #f0e8f8;
+    --text-dim: #a889c0;
+    --text-muted: #6b5580;
+    --green: #86efac;
+    --red: #f87171;
+    --highlight: rgba(192,132,252,0.08);
+    --highlight-border: rgba(192,132,252,0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+
+  .page {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(26, 19, 32, 0.85);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  header .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  header span {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  .main {
+    display: flex;
+    flex: 1;
+    gap: 0;
+  }
+
+  /* ---- LEFT PANEL ---- */
+  .left-panel {
+    width: 520px;
+    min-width: 480px;
+    border-right: 1px solid var(--border);
+    padding: 28px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .panel-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  /* Table */
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead tr {
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  th:first-child { text-align: left; }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(61, 47, 77, 0.7);
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+
+  tbody tr.highlight-row {
+    background: var(--highlight);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+
+  tbody tr.highlight-row td { color: var(--accent); }
+
+  td {
+    padding: 6px 12px;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  td:first-child { text-align: left; }
+
+  .proc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 12px;
+  }
+
+  .proc-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .spinner-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .spinner-val {
+    width: 36px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 13px;
+  }
+
+  .spin-btn {
+    width: 18px; height: 18px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-dim);
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    padding: 0;
+    user-select: none;
+  }
+
+  .spin-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(192,132,252,0.1);
+  }
+
+  .del-btn {
+    width: 22px; height: 22px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    padding: 0;
+  }
+
+  .del-btn:hover {
+    border-color: var(--red);
+    color: var(--red);
+    background: rgba(239,68,68,0.08);
+  }
+
+  /* Add/Random buttons */
+  .table-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-add, .btn-rand {
+    flex: 1;
+    padding: 9px 14px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid;
+    text-transform: uppercase;
+  }
+
+  .btn-add {
+    background: rgba(192,132,252,0.08);
+    border-color: rgba(192,132,252,0.35);
+    color: var(--accent);
+  }
+  .btn-add:hover {
+    background: rgba(192,132,252,0.16);
+    border-color: var(--accent);
+    box-shadow: 0 0 16px rgba(192,132,252,0.2);
+  }
+
+  .btn-rand {
+    background: rgba(168,85,247,0.08);
+    border-color: rgba(168,85,247,0.3);
+    color: var(--accent2);
+  }
+  .btn-rand:hover {
+    background: rgba(168,85,247,0.16);
+    border-color: var(--accent2);
+    box-shadow: 0 0 16px rgba(168,85,247,0.2);
+  }
+
+  .priority-note strong { color: var(--accent3); }
+
+  /* Control buttons */
+  .controls {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    padding-top: 4px;
+  }
+
+  .ctrl-btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid;
+    min-width: 80px;
+  }
+
+  #btn-start {
+    background: rgba(16,185,129,0.1);
+    border-color: rgba(16,185,129,0.4);
+    color: var(--green);
+  }
+  #btn-start:hover:not(:disabled) {
+    background: rgba(16,185,129,0.2);
+    border-color: var(--green);
+    box-shadow: 0 0 20px rgba(16,185,129,0.2);
+  }
+  #btn-start:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  #btn-pause {
+    background: rgba(245,158,11,0.1);
+    border-color: rgba(245,158,11,0.4);
+    color: var(--accent3);
+  }
+  #btn-pause:hover:not(:disabled) {
+    background: rgba(245,158,11,0.2);
+    border-color: var(--accent3);
+    box-shadow: 0 0 20px rgba(245,158,11,0.2);
+  }
+  #btn-pause:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  #btn-skip {
+    background: rgba(168,85,247,0.1);
+    border-color: rgba(168,85,247,0.35);
+    color: var(--accent2);
+  }
+  #btn-skip:hover:not(:disabled) {
+    background: rgba(168,85,247,0.2);
+    border-color: var(--accent2);
+    box-shadow: 0 0 20px rgba(168,85,247,0.2);
+  }
+  #btn-skip:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  #btn-replay {
+    background: rgba(192,132,252,0.08);
+    border-color: rgba(192,132,252,0.25);
+    color: var(--accent);
+  }
+  #btn-replay:hover:not(:disabled) {
+    background: rgba(192,132,252,0.16);
+    border-color: var(--accent);
+    box-shadow: 0 0 20px rgba(192,132,252,0.2);
+  }
+  #btn-replay:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* Speed control */
+  .speed-control {
+    padding: 0 4px;
+  }
+
+  .speed-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .speed-label #speed-val {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  #speed-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  #speed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(192,132,252,0.6);
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+  }
+
+  #speed-slider::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 14px rgba(192,132,252,0.9);
+  }
+
+  #speed-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    box-shadow: 0 0 8px rgba(192,132,252,0.6);
+    cursor: pointer;
+  }
+
+  .speed-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-top: 5px;
+    letter-spacing: 0.08em;
+  }
+
+  /* ---- RIGHT PANEL ---- */
+  .right-panel {
+    flex: 1;
+    padding: 28px 28px 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    min-width: 0;
+  }
+
+  /* Full-width gantt strip at bottom */
+  .gantt-strip {
+    border-top: 1px solid var(--border);
+    padding: 24px 32px 28px;
+    background: rgba(26, 19, 32, 0.6);
+  }
+
+  .gantt-strip .section-head {
+    margin-bottom: 14px;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .section-head .tag {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .section-head .line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Gantt chart */
+  .gantt-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 20px 20px;
+    min-height: 110px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #gantt-container {
+    position: relative;
+    height: 64px;
+    margin-bottom: 0;
+  }
+
+  #gantt-time-axis {
+    display: none;
+  }
+
+  .gantt-bar {
+    position: absolute;
+    top: 0;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    border-radius: 4px;
+    transition: width 0.15s linear;
+    overflow: visible;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .gantt-bar .bar-label {
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    pointer-events: none;
+  }
+
+  .gantt-bar.idle-bar {
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(255,255,255,0.02),
+      rgba(255,255,255,0.02) 4px,
+      transparent 4px,
+      transparent 10px
+    );
+    border-color: var(--border);
+    color: var(--text-muted);
+    overflow: hidden;
+  }
+
+  /* Time markers above and below bars */
+  .time-marker {
+    position: absolute;
+    bottom: -18px;
+    font-size: 9px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .time-marker::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 4px;
+    background: var(--border);
+  }
+
+  .time-tick {
+    display: none;
+  }
+
+  /* Idle placeholder */
+  .gantt-idle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 64px;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+  }
+
+  /* Simulation boxes */
+  .sim-boxes {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+
+  .sim-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    min-height: 110px;
+    transition: border-color 0.3s;
+  }
+
+  .sim-box.active { border-color: rgba(192,132,252,0.3); }
+
+  .sim-box-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sim-box-label .indicator {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+  }
+
+  .queue-box .indicator { background: var(--accent3); }
+  .cpu-box .indicator { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .done-box .indicator { background: var(--text-dim); }
+
+  .chip-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 40px;
+    align-items: flex-start;
+    align-content: flex-start;
+  }
+
+  .proc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    animation: chipIn 0.25s ease both;
+    white-space: nowrap;
+  }
+
+  @keyframes chipIn {
+    from { opacity: 0; transform: scale(0.8) translateY(4px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .chip-time {
+    font-size: 8px;
+    opacity: 0.6;
+    font-weight: 400;
+  }
+
+  .cpu-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+    gap: 4px;
+  }
+
+  .cpu-proc {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    animation: cpuIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes cpuIn {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .cpu-bar {
+    width: 100%;
+    height: 3px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+
+  .cpu-bar-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 2px;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  .cpu-idle {
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+
+  /* Stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    transition: border-color 0.3s;
+  }
+
+  .stat-card.visible { border-color: rgba(192,132,252,0.3); }
+
+  .stat-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-muted);
+    transition: color 0.3s;
+  }
+
+  .stat-card.visible .stat-value { color: var(--accent); }
+
+  .stat-unit {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* Current time badge */
+  .time-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    color: var(--text-dim);
+    transition: all 0.2s;
+  }
+
+  .time-badge.running {
+    border-color: rgba(16,185,129,0.4);
+    color: var(--green);
+  }
+
+  .time-badge .blink {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 1s ease-in-out infinite;
+    display: none;
+  }
+
+  .time-badge.running .blink { display: block; }
+
+  /* Empty state */
+  .empty-row td {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 11px;
+    padding: 18px;
+    text-align: center;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .gantt-overflow {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  #gantt-inner {
+    position: relative;
+    min-width: 100%;
+  }
+
+  /* ── EXPLANATION SECTION ─────────────────────────────────────────────────── */
+  .explainer {
+    padding: 36px 80px 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .explainer-eyebrow {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  .explainer-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+
+  .explainer-title span { color: var(--accent); }
+
+  .explainer-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+
+  .explainer-col h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .explainer-col p {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.75;
+    opacity: 0.8;
+  }
+
+  .explainer-col .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .pill {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid rgba(192,132,252,0.3);
+    color: var(--accent);
+    background: rgba(192,132,252,0.08);
+    letter-spacing: 0.05em;
+  }
+
+  .scroll-hint {
+    margin-top: 24px;
+    font-size: 10px;
+    color: var(--text-dim);
+    opacity: 0.45;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="dot"></div>
+    <h1>Priority Scheduler</h1>
+    <span>/ Non-Preemptive CPU Simulation</span>
+    <div style="margin-left:auto">
+      <div class="time-badge" id="time-badge">
+        <div class="blink"></div>
+        <span id="time-display">t = 0 ms</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── EXPLANATION SECTION ───────────────────────────────────────────────── -->
+  <section class="explainer">
+
+    <div class="explainer-eyebrow">Operating Systems · CPU Scheduling</div>
+    <div class="explainer-title">Non-Preemptive <span>Priority Scheduling</span></div>
+
+    <div class="explainer-body">
+      <div class="explainer-col">
+        <h3>CPU Scheduling</h3>
+        <p>The CPU can only run one process at a time. When multiple processes are ready, the OS needs a rule for who goes first — that rule is the scheduling algorithm.</p>
+      </div>
+      <div class="explainer-col">
+        <h3>Priority Scheduling</h3>
+        <p>Each process gets a priority number. When the CPU is free, it picks the process with the <strong style="color:var(--accent)">lowest priority number</strong> (highest urgency) from the ready queue. Ties go to whoever arrived first.</p>
+      </div>
+      <div class="explainer-col">
+        <h3>Non-Preemptive</h3>
+        <p>Once a process starts running it goes <strong style="color:var(--accent)">all the way to completion</strong> — even if a higher-priority process arrives mid-execution. That new arrival simply waits in the queue.</p>
+        <div class="pill-row">
+          <span class="pill">Priority 1 = Highest</span>
+          <span class="pill">No interruptions</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll-hint">↓ &nbsp;scroll down to simulate</div>
+
+  </section>
+
+  <div class="main">
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <div>
+        <div class="panel-label">Process Table</div>
+        <div class="table-wrap">
+          <table id="proc-table">
+            <thead>
+              <tr>
+                <th>Process</th>
+                <th>Arrival</th>
+                <th>Burst</th>
+                <th>Priority</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="proc-tbody">
+              <tr class="empty-row">
+                <td colspan="5">No processes — click Add or Random</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="table-actions">
+        <button class="btn-add" id="btn-add">+ Add</button>
+        <button class="btn-rand" id="btn-rand">⚄ Random</button>
+      </div>
+
+      <div class="controls">
+        <button class="ctrl-btn" id="btn-start">▶ Start</button>
+        <button class="ctrl-btn" id="btn-pause" disabled>⏸ Pause</button>
+        <button class="ctrl-btn" id="btn-skip" disabled>⏭ Skip</button>
+        <button class="ctrl-btn" id="btn-replay" disabled>↺ Replay</button>
+      </div>
+
+      <div class="speed-control">
+        <div class="speed-label">
+          <span>Speed</span>
+          <span id="speed-val">1×</span>
+        </div>
+        <input type="range" id="speed-slider" min="1" max="10" value="1" step="1">
+        <div class="speed-ticks">
+          <span>slow</span>
+          <span>fast</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+
+      <!-- State Simulation -->
+      <div>
+        <div class="section-head">
+          <span class="tag">Live State</span>
+          <div class="line"></div>
+        </div>
+        <div class="sim-boxes">
+          <div class="sim-box queue-box" id="box-queue">
+            <div class="sim-box-label">
+              <div class="indicator"></div>
+              Ready Queue
+            </div>
+            <div class="chip-area" id="queue-area">
+              <span style="color:var(--text-muted);font-size:11px">—</span>
+            </div>
+          </div>
+          <div class="sim-box cpu-box" id="box-cpu">
+            <div class="sim-box-label">
+              <div class="indicator"></div>
+              CPU
+            </div>
+            <div class="cpu-display" id="cpu-area">
+              <span class="cpu-idle">IDLE</span>
+            </div>
+          </div>
+          <div class="sim-box done-box" id="box-done">
+            <div class="sim-box-label">
+              <div class="indicator"></div>
+              Completed
+            </div>
+            <div class="chip-area" id="done-area">
+              <span style="color:var(--text-muted);font-size:11px">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div>
+        <div class="section-head">
+          <span class="tag">Performance Metrics</span>
+          <div class="line"></div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card" id="stat-awt">
+            <div class="stat-label">Avg Wait Time</div>
+            <div class="stat-value" id="val-awt">—</div>
+            <div class="stat-unit">milliseconds</div>
+          </div>
+          <div class="stat-card" id="stat-att">
+            <div class="stat-label">Avg Turnaround</div>
+            <div class="stat-value" id="val-att">—</div>
+            <div class="stat-unit">milliseconds</div>
+          </div>
+          <div class="stat-card" id="stat-cpu">
+            <div class="stat-label">CPU Utilization</div>
+            <div class="stat-value" id="val-cpu">—</div>
+            <div class="stat-unit">percent</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FULL-WIDTH GANTT STRIP -->
+  <div class="gantt-strip">
+    <div class="section-head">
+      <span class="tag">Gantt Chart</span>
+      <div class="line"></div>
+    </div>
+    <div class="gantt-wrap">
+      <div class="gantt-overflow">
+        <div id="gantt-inner">
+          <div id="gantt-container">
+            <div class="gantt-idle" id="gantt-idle">Waiting for simulation to start…</div>
+          </div>
+          <div id="gantt-time-axis"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+let processes = [];
+let nextId = 1;
+
+const PROC_COLORS = [
+  { bg: 'rgba(192,132,252,0.18)', border: '#c084fc', text: '#e9d5ff' },
+  { bg: 'rgba(240,171,252,0.18)', border: '#f0abfc', text: '#fae8ff' },
+  { bg: 'rgba(134,239,172,0.18)', border: '#86efac', text: '#bbf7d0' },
+  { bg: 'rgba(251,191,36,0.18)',  border: '#fbbf24', text: '#fde68a' },
+  { bg: 'rgba(248,113,113,0.18)', border: '#f87171', text: '#fecaca' },
+  { bg: 'rgba(129,140,248,0.2)',  border: '#818cf8', text: '#c7d2fe' },
+  { bg: 'rgba(52,211,153,0.18)',  border: '#34d399', text: '#a7f3d0' },
+  { bg: 'rgba(251,146,60,0.18)',  border: '#fb923c', text: '#fed7aa' },
+];
+
+function getColor(idx) { return PROC_COLORS[(idx - 1) % PROC_COLORS.length]; }
+
+// ─── TABLE ───────────────────────────────────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('proc-tbody');
+  tbody.innerHTML = '';
+  if (processes.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No processes — click Add or Random</td></tr>';
+    return;
+  }
+  processes.forEach((p, i) => {
+    const c = getColor(p.id);
+    const tr = document.createElement('tr');
+    tr.id = `row-${p.id}`;
+    tr.innerHTML = `
+      <td><span class="proc-badge" style="color:${c.text}"><span class="proc-dot"></span>P${p.id}</span></td>
+      <td>${spinnerCell('arrival', i, p.arrival, 0, 10)}</td>
+      <td>${spinnerCell('burst', i, p.burst, 0, 30)}</td>
+      <td>${spinnerCell('priority', i, p.priority, 0, 10)}</td>
+      <td><button class="del-btn" onclick="deleteRow(${i})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function spinnerCell(field, idx, val, min, max) {
+  return `<div class="spinner-cell">
+    <button class="spin-btn" onclick="spin(${idx},'${field}',-1,${min},${max})">▼</button>
+    <span class="spinner-val" id="sv-${idx}-${field}">${val}</span>
+    <button class="spin-btn" onclick="spin(${idx},'${field}',1,${min},${max})">▲</button>
+  </div>`;
+}
+
+function spin(idx, field, dir, min, max) {
+  processes[idx][field] = Math.min(max, Math.max(min, processes[idx][field] + dir));
+  const el = document.getElementById(`sv-${idx}-${field}`);
+  if (el) el.textContent = processes[idx][field];
+}
+
+function deleteRow(idx) {
+  processes.splice(idx, 1);
+  renderTable();
+}
+
+document.getElementById('btn-add').onclick = () => {
+  if (simState !== 'idle') return;
+  processes.push({ id: nextId++, arrival: 0, burst: 0, priority: 0 });
+  renderTable();
+};
+
+document.getElementById('btn-rand').onclick = () => {
+  if (simState !== 'idle') return;
+  const arrival = Math.floor(Math.random() * 10);
+  const burst = Math.floor(Math.random() * 30) + 1;
+  const priority = Math.floor(Math.random() * 10) + 1;
+  processes.push({ id: nextId++, arrival, burst, priority });
+  renderTable();
+};
+
+// ─── SCHEDULER ───────────────────────────────────────────────────────────────
+function computeSchedule(procs) {
+  const jobs = procs.map(p => ({ ...p, remaining: p.burst }));
+  jobs.sort((a, b) => a.arrival - b.arrival);
+  let time = 0, done = 0, n = jobs.length;
+  const order = [];
+
+  while (done < n) {
+    const available = jobs.filter(j => j.arrival <= time && j.remaining > 0);
+    if (available.length === 0) {
+      const next = jobs.filter(j => j.remaining > 0).sort((a,b) => a.arrival - b.arrival)[0];
+      if (!next) break;
+      const idleEnd = next.arrival;
+      if (idleEnd > time) { order.push({ id: 'idle', start: time, end: idleEnd }); time = idleEnd; }
+      continue;
+    }
+    available.sort((a, b) => a.priority - b.priority || a.arrival - b.arrival);
+    const chosen = available[0];
+    const start = time;
+    const end = time + chosen.remaining;
+    order.push({ id: chosen.id, start, end });
+    chosen.waitTime = start - chosen.arrival;
+    chosen.turnaround = end - chosen.arrival;
+    chosen.remaining = 0;
+    time = end;
+    done++;
+  }
+  return { order, jobs };
+}
+
+// ─── SIMULATION ──────────────────────────────────────────────────────────────
+let simState = 'idle'; // idle | running | paused | done
+let simInterval = null;
+let simTime = 0;
+let simSchedule = [];
+let simJobs = [];
+let simTotalTime = 0;
+let simTimePerMs = 200; // real ms per simulation ms (default slow)
+let simCompleted = new Set();
+let simCurrent = null;
+let ganttPixelPerMs = 20;
+let ganttInitialized = false;
+
+// Speed slider
+const speedSlider = document.getElementById('speed-slider');
+const speedVal = document.getElementById('speed-val');
+// Map slider 1-10 → interval 200ms down to 20ms
+function sliderToInterval(v) { return Math.round(200 - (v - 1) * (180 / 9)); }
+speedSlider.oninput = () => {
+  const v = parseInt(speedSlider.value);
+  speedVal.textContent = v + '×';
+  simTimePerMs = sliderToInterval(v);
+  // if running, restart interval at new speed
+  if (simState === 'running') {
+    clearInterval(simInterval);
+    tick();
+  }
+};
+
+function startSim() {
+  if (processes.length === 0) return;
+  const { order, jobs } = computeSchedule(processes);
+  simSchedule = order;
+  simJobs = jobs;
+  simTotalTime = order.length ? order[order.length - 1].end : 0;
+  simTime = 0;
+  simCompleted = new Set();
+  simCurrent = null;
+  simState = 'running';
+  ganttInitialized = false;
+
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-pause').disabled = false;
+  document.getElementById('btn-skip').disabled = false;
+  document.getElementById('btn-replay').disabled = true;
+  document.getElementById('btn-add').disabled = true;
+  document.getElementById('btn-rand').disabled = true;
+
+  initGantt();
+  updateTimeDisplay(0);
+  tick();
+}
+
+function replaySim() {
+  // Replay with same processes, don't clear them
+  clearInterval(simInterval);
+  const { order, jobs } = computeSchedule(processes);
+  simSchedule = order;
+  simJobs = jobs;
+  simTotalTime = order.length ? order[order.length - 1].end : 0;
+  simTime = 0;
+  simCompleted = new Set();
+  simCurrent = null;
+  simState = 'running';
+  ganttInitialized = false;
+
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-pause').disabled = false;
+  document.getElementById('btn-pause').textContent = '⏸ Pause';
+  document.getElementById('btn-skip').disabled = false;
+  document.getElementById('btn-replay').disabled = true;
+  document.getElementById('btn-add').disabled = true;
+  document.getElementById('btn-rand').disabled = true;
+
+  // Clear highlights
+  processes.forEach(p => {
+    const row = document.getElementById(`row-${p.id}`);
+    if (row) row.classList.remove('highlight-row');
+  });
+
+  resetGantt();
+  resetLiveState();
+  resetStats();
+  initGantt();
+  updateTimeDisplay(0);
+  tick();
+}
+
+function tick() {
+  if (simState !== 'running') return;
+  simInterval = setInterval(() => {
+    if (simState !== 'running') return;
+    simTime++;
+    updateTimeDisplay(simTime);
+    updateLiveState(simTime);
+    updateGantt(simTime);
+    if (simTime >= simTotalTime) {
+      finishSim();
+    }
+  }, simTimePerMs);
+}
+
+function pauseSim() {
+  if (simState === 'running') {
+    clearInterval(simInterval);
+    simState = 'paused';
+    document.getElementById('btn-pause').textContent = '▶ Resume';
+    document.getElementById('time-badge').classList.remove('running');
+  } else if (simState === 'paused') {
+    simState = 'running';
+    document.getElementById('btn-pause').textContent = '⏸ Pause';
+    document.getElementById('time-badge').classList.add('running');
+    tick();
+  }
+}
+
+function skipSim() {
+  clearInterval(simInterval);
+  simState = 'done';
+  simTime = simTotalTime;
+  updateTimeDisplay(simTotalTime);
+  updateLiveState(simTotalTime);
+  renderGanttFull();
+  finishSim();
+}
+
+function finishSim() {
+  clearInterval(simInterval);
+  simState = 'done';
+  document.getElementById('btn-pause').disabled = true;
+  document.getElementById('btn-skip').disabled = true;
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-start').textContent = '↺ Reset';
+  document.getElementById('btn-start').onclick = resetSim;
+  document.getElementById('btn-replay').disabled = false;
+  document.getElementById('time-badge').classList.remove('running');
+
+  // Unhighlight all rows
+  processes.forEach(p => {
+    const row = document.getElementById(`row-${p.id}`);
+    if (row) row.classList.remove('highlight-row');
+  });
+
+  showStats();
+}
+
+function resetSim() {
+  clearInterval(simInterval);
+  simState = 'idle';
+  simTime = 0;
+  simSchedule = [];
+  simJobs = [];
+  simCompleted = new Set();
+  simCurrent = null;
+  nextId = 1;
+  processes = [];
+
+  document.getElementById('btn-start').textContent = '▶ Start';
+  document.getElementById('btn-start').onclick = startSim;
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-pause').disabled = true;
+  document.getElementById('btn-pause').textContent = '⏸ Pause';
+  document.getElementById('btn-skip').disabled = true;
+  document.getElementById('btn-replay').disabled = true;
+  document.getElementById('btn-add').disabled = false;
+  document.getElementById('btn-rand').disabled = false;
+  document.getElementById('time-badge').classList.remove('running');
+  updateTimeDisplay(0);
+
+  renderTable();
+  resetGantt();
+  resetLiveState();
+  resetStats();
+}
+
+document.getElementById('btn-start').onclick = startSim;
+document.getElementById('btn-pause').onclick = pauseSim;
+document.getElementById('btn-skip').onclick = skipSim;
+document.getElementById('btn-replay').onclick = replaySim;
+
+// ─── LIVE STATE ───────────────────────────────────────────────────────────────
+// Track previous state to avoid unnecessary DOM churn (prevents flickering)
+let _prevSegId = null;
+let _prevQueueKey = '';
+let _prevDoneKey = '';
+let _prevCpuProg = -1;
+
+function updateLiveState(t) {
+  // Find current running segment
+  const seg = simSchedule.find(s => t > s.start && t <= s.end && s.id !== 'idle');
+
+  // Highlight row — only change when segment changes
+  if ((seg ? seg.id : null) !== _prevSegId) {
+    processes.forEach(p => {
+      const row = document.getElementById(`row-${p.id}`);
+      if (row) row.classList.remove('highlight-row');
+    });
+    if (seg) {
+      const row = document.getElementById(`row-${seg.id}`);
+      if (row) row.classList.add('highlight-row');
+    }
+    _prevSegId = seg ? seg.id : null;
+  }
+
+  // Find newly completed processes
+  let completedChanged = false;
+  simSchedule.forEach(s => {
+    if (s.id !== 'idle' && s.end <= t && !simCompleted.has(s.id)) {
+      simCompleted.add(s.id);
+      completedChanged = true;
+    }
+  });
+
+  // Ready queue = arrived, not done, not currently running
+  const queue = processes.filter(p =>
+    p.arrival <= t &&
+    !simCompleted.has(p.id) &&
+    (!seg || seg.id !== p.id)
+  ).sort((a, b) => a.priority - b.priority || a.arrival - b.arrival);
+
+  // Only re-render queue if its membership changed
+  const queueKey = queue.map(p => p.id).join(',');
+  if (queueKey !== _prevQueueKey) {
+    renderQueue(queue, t);
+    _prevQueueKey = queueKey;
+  }
+
+  // CPU: always update progress bar value, but only rebuild HTML when process changes
+  renderCPU(seg, t);
+
+  // Completed: only re-render when set changes
+  const doneKey = [...simCompleted].join(',');
+  if (doneKey !== _prevDoneKey) {
+    renderCompleted();
+    _prevDoneKey = doneKey;
+  }
+}
+
+function renderQueue(queue, t) {
+  const area = document.getElementById('queue-area');
+  area.innerHTML = '';
+  if (queue.length === 0) {
+    area.innerHTML = '<span style="color:var(--text-muted);font-size:11px">—</span>';
+    return;
+  }
+  queue.forEach((p) => {
+    const c = getColor(p.id);
+    const chip = document.createElement('div');
+    chip.className = 'proc-chip';
+    chip.style.background = c.bg;
+    chip.style.border = `1px solid ${c.border}`;
+    chip.style.color = c.text;
+    chip.innerHTML = `P${p.id} <span class="chip-time">pri:${p.priority}</span>`;
+    area.appendChild(chip);
+  });
+}
+
+let _cpuSegId = null;
+function renderCPU(seg, t) {
+  const area = document.getElementById('cpu-area');
+  if (!seg) {
+    if (_cpuSegId !== null) {
+      area.innerHTML = '<span class="cpu-idle">IDLE</span>';
+      _cpuSegId = null;
+    }
+    return;
+  }
+  const c = getColor(seg.id);
+  const prog = ((t - seg.start) / (seg.end - seg.start)) * 100;
+
+  if (seg.id !== _cpuSegId) {
+    // Process changed — rebuild the HTML
+    area.innerHTML = `
+      <div class="cpu-proc" style="color:${c.text}" id="cpu-proc-name">P${seg.id}</div>
+      <div id="cpu-prog-text" style="font-size:9px;color:var(--text-dim);letter-spacing:0.1em">${t - seg.start}/${seg.end - seg.start} ms</div>
+      <div class="cpu-bar" style="width:100%">
+        <div class="cpu-bar-fill" id="cpu-bar-fill" style="width:${prog}%;background:${c.border};box-shadow:0 0 8px ${c.border}"></div>
+      </div>
+    `;
+    _cpuSegId = seg.id;
+  } else {
+    // Same process — just update progress bar and text in-place (no flicker)
+    const fill = document.getElementById('cpu-bar-fill');
+    const txt = document.getElementById('cpu-prog-text');
+    if (fill) fill.style.width = prog + '%';
+    if (txt) txt.textContent = `${t - seg.start}/${seg.end - seg.start} ms`;
+  }
+}
+
+function renderCompleted() {
+  const area = document.getElementById('done-area');
+  area.innerHTML = '';
+  if (simCompleted.size === 0) {
+    area.innerHTML = '<span style="color:var(--text-muted);font-size:11px">—</span>';
+    return;
+  }
+  [...simCompleted].forEach(id => {
+    const chip = document.createElement('div');
+    chip.className = 'proc-chip';
+    chip.style.background = 'rgba(100,116,139,0.15)';
+    chip.style.border = '1px solid rgba(100,116,139,0.3)';
+    chip.style.color = 'var(--text-dim)';
+    chip.innerHTML = `P${id}`;
+    area.appendChild(chip);
+  });
+}
+
+function resetLiveState() {
+  _prevSegId = null;
+  _prevQueueKey = '';
+  _prevDoneKey = '';
+  _prevCpuProg = -1;
+  _cpuSegId = null;
+  document.getElementById('queue-area').innerHTML = '<span style="color:var(--text-muted);font-size:11px">—</span>';
+  document.getElementById('cpu-area').innerHTML = '<span class="cpu-idle">IDLE</span>';
+  document.getElementById('done-area').innerHTML = '<span style="color:var(--text-muted);font-size:11px">—</span>';
+}
+
+// ─── GANTT ────────────────────────────────────────────────────────────────────
+function initGantt() {
+  const container = document.getElementById('gantt-container');
+  container.innerHTML = '';
+  const axis = document.getElementById('gantt-time-axis');
+  axis.innerHTML = '';
+
+  // pixel per ms — use full page width for gantt strip
+  const wrap = document.getElementById('gantt-inner');
+  const availW = wrap.parentElement.offsetWidth - 40;
+  ganttPixelPerMs = Math.max(20, Math.min(60, availW / (simTotalTime || 1)));
+
+  const totalW = simTotalTime * ganttPixelPerMs;
+  wrap.style.minWidth = `${totalW + 40}px`;
+  // extra bottom room for time markers
+  container.style.marginBottom = '28px';
+
+  ganttInitialized = true;
+
+  const badge = document.getElementById('time-badge');
+  badge.classList.add('running');
+}
+
+function updateGantt(t) {
+  if (!ganttInitialized) return;
+  const container = document.getElementById('gantt-container');
+
+  simSchedule.forEach(seg => {
+    if (seg.start >= t) return; // not started yet
+    let bar = document.getElementById(`gbar-${seg.id}-${seg.start}`);
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = `gbar-${seg.id}-${seg.start}`;
+      bar.className = 'gantt-bar';
+      bar.style.left = `${seg.start * ganttPixelPerMs}px`;
+      if (seg.id === 'idle') {
+        bar.classList.add('idle-bar');
+        bar.innerHTML = `<span class="bar-label">idle</span>`;
+      } else {
+        const c = getColor(seg.id);
+        bar.style.background = c.bg;
+        bar.style.borderColor = c.border;
+        bar.style.color = c.text;
+        bar.style.boxShadow = `0 0 12px ${c.bg}`;
+        bar.innerHTML = `<span class="bar-label">P${seg.id}</span>`;
+      }
+      // Start time marker
+      const startMark = document.createElement('div');
+      startMark.className = 'time-marker';
+      startMark.style.left = `${seg.start * ganttPixelPerMs}px`;
+      startMark.textContent = seg.start;
+      startMark.id = `tm-start-${seg.id}-${seg.start}`;
+      container.appendChild(startMark);
+      container.appendChild(bar);
+    }
+    // grow the bar
+    const visibleEnd = Math.min(t, seg.end);
+    const w = (visibleEnd - seg.start) * ganttPixelPerMs;
+    bar.style.width = `${Math.max(w, 0)}px`;
+
+    // End time marker — show when segment completes
+    if (t >= seg.end) {
+      const endId = `tm-end-${seg.id}-${seg.start}`;
+      if (!document.getElementById(endId)) {
+        const endMark = document.createElement('div');
+        endMark.className = 'time-marker';
+        endMark.style.left = `${seg.end * ganttPixelPerMs}px`;
+        endMark.textContent = seg.end;
+        endMark.id = endId;
+        container.appendChild(endMark);
+      }
+    }
+  });
+}
+
+function renderGanttFull() {
+  initGantt();
+  const container = document.getElementById('gantt-container');
+  simSchedule.forEach(seg => {
+    let bar = document.getElementById(`gbar-${seg.id}-${seg.start}`);
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = `gbar-${seg.id}-${seg.start}`;
+      bar.className = 'gantt-bar';
+      bar.style.left = `${seg.start * ganttPixelPerMs}px`;
+      if (seg.id === 'idle') {
+        bar.classList.add('idle-bar');
+        bar.innerHTML = `<span class="bar-label">idle</span>`;
+      } else {
+        const c = getColor(seg.id);
+        bar.style.background = c.bg;
+        bar.style.borderColor = c.border;
+        bar.style.color = c.text;
+        bar.style.boxShadow = `0 0 12px ${c.bg}`;
+        bar.innerHTML = `<span class="bar-label">P${seg.id}</span>`;
+      }
+      // Start marker
+      const startMark = document.createElement('div');
+      startMark.className = 'time-marker';
+      startMark.style.left = `${seg.start * ganttPixelPerMs}px`;
+      startMark.textContent = seg.start;
+      container.appendChild(startMark);
+      container.appendChild(bar);
+    }
+    bar.style.width = `${(seg.end - seg.start) * ganttPixelPerMs}px`;
+
+    // End marker
+    const endId = `tm-end-${seg.id}-${seg.start}`;
+    if (!document.getElementById(endId)) {
+      const endMark = document.createElement('div');
+      endMark.className = 'time-marker';
+      endMark.style.left = `${seg.end * ganttPixelPerMs}px`;
+      endMark.textContent = seg.end;
+      endMark.id = endId;
+      container.appendChild(endMark);
+    }
+  });
+}
+
+function resetGantt() {
+  const container = document.getElementById('gantt-container');
+  container.innerHTML = '<div class="gantt-idle" id="gantt-idle">Waiting for simulation to start…</div>';
+  container.style.marginBottom = '0';
+  document.getElementById('gantt-time-axis').innerHTML = '';
+  document.getElementById('gantt-inner').style.minWidth = '100%';
+  ganttInitialized = false;
+}
+
+// ─── TIME DISPLAY ─────────────────────────────────────────────────────────────
+function updateTimeDisplay(t) {
+  document.getElementById('time-display').textContent = `t = ${t} ms`;
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function showStats() {
+  const n = simJobs.length;
+  if (n === 0) return;
+
+  const totalWait = simJobs.reduce((s, j) => s + (j.waitTime || 0), 0);
+  const totalTA = simJobs.reduce((s, j) => s + (j.turnaround || 0), 0);
+  const busyTime = simSchedule.filter(s => s.id !== 'idle').reduce((s, seg) => s + (seg.end - seg.start), 0);
+  const util = simTotalTime > 0 ? ((busyTime / simTotalTime) * 100).toFixed(1) : '0.0';
+
+  document.getElementById('val-awt').textContent = (totalWait / n).toFixed(2);
+  document.getElementById('val-att').textContent = (totalTA / n).toFixed(2);
+  document.getElementById('val-cpu').textContent = util + '%';
+
+  ['stat-awt', 'stat-att', 'stat-cpu'].forEach(id => {
+    document.getElementById(id).classList.add('visible');
+  });
+}
+
+function resetStats() {
+  document.getElementById('val-awt').textContent = '—';
+  document.getElementById('val-att').textContent = '—';
+  document.getElementById('val-cpu').textContent = '—';
+  ['stat-awt', 'stat-att', 'stat-cpu'].forEach(id => {
+    document.getElementById(id).classList.remove('visible');
+  });
+}
+</script>
+</body>
+</html>
