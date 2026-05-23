@@ -1,0 +1,23 @@
+{
+  "name": "os-uni-project",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "OS Interactive Web Portfolio — static site + submission API for Vercel",
+  "scripts": {
+    "build": "node scripts/prepare-public.js",
+    "start": "node scripts/dev-server.js",
+    "dev": "vercel dev",
+    "prepare-public": "node scripts/prepare-public.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.14",
+    "hono": "^4.7.4"
+  },
+  "devDependencies": {
+    "vercel": "^41.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
